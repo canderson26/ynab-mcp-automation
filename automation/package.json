@@ -1,0 +1,17 @@
+{
+  "name": "ynab-automation",
+  "version": "1.0.0",
+  "description": "Daily YNAB transaction categorization automation",
+  "main": "run-daily-categorization.js",
+  "type": "module",
+  "scripts": {
+    "categorize": "node run-daily-categorization.js",
+    "test": "echo \"No tests yet\" && exit 0"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
