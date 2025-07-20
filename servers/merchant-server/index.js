@@ -203,6 +203,14 @@ const TOOLS = [
       },
       required: ['backupPath']
     }
+  },
+  {
+    name: 'health',
+    description: 'Check merchant server health',
+    inputSchema: {
+      type: 'object',
+      properties: {}
+    }
   }
 ];
 
@@ -278,6 +286,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case 'backupDatabase':
         result = await db.backupDatabase(args.backupPath);
+        break;
+
+      case 'health':
+        result = db.checkHealth();
         break;
 
       default:

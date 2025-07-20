@@ -283,4 +283,28 @@ export class YnabClient {
       }))
     };
   }
+
+  // Health check
+  async checkHealth() {
+    try {
+      // Test YNAB API connectivity by getting budget info
+      const endpoint = `/budgets/${this.budgetId}`;
+      const data = await this.request('GET', endpoint);
+      
+      return {
+        status: 'healthy',
+        ynab_api: 'connected',
+        budget_id: this.budgetId,
+        budget_name: data.budget.name,
+        last_modified: data.budget.last_modified_on,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      return {
+        status: 'unhealthy',
+        error: error.message,
+        timestamp: new Date().toISOString()
+      };
+    }
+  }
 }

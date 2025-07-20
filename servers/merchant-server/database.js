@@ -371,6 +371,31 @@ export class MerchantDatabase {
     return { success: true, path: backupPath };
   }
 
+  // Health check
+  checkHealth() {
+    try {
+      // Test database connectivity
+      const stats = this.getStats();
+      const tableCheck = this.db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
+      
+      return {
+        status: 'healthy',
+        database: 'connected',
+        tables: tableCheck.length,
+        merchants: stats.total_merchants,
+        categorizations: stats.total_categorizations,
+        average_confidence: stats.avg_confidence,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      return {
+        status: 'unhealthy',
+        error: error.message,
+        timestamp: new Date().toISOString()
+      };
+    }
+  }
+
   // Close database connection
   close() {
     this.db.close();

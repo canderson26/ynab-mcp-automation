@@ -242,6 +242,14 @@ const TOOLS = [
       },
       required: ['payeeName']
     }
+  },
+  {
+    name: 'health',
+    description: 'Check YNAB server health',
+    inputSchema: {
+      type: 'object',
+      properties: {}
+    }
   }
 ];
 
@@ -318,6 +326,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case 'getTransactionsByPayee':
         result = await ynab.getTransactionsByPayee(args.payeeName, args.daysBack);
+        break;
+
+      case 'health':
+        result = await ynab.checkHealth();
         break;
 
       default:

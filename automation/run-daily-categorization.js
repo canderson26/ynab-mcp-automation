@@ -366,8 +366,23 @@ async function runDailyCategorization() {
 
     log(`Categorization complete: ${results.processed} processed, ${results.approved} approved, ${results.pending} pending, ${results.errors} errors`);
 
-    // TODO: Send Telegram summary
-    // await sendTelegramSummary(results);
+    // Send Telegram summary
+    try {
+      await executeMCPTool('telegram', 'sendDailySummary', {
+        stats: {
+          processed: results.processed,
+          approved: results.approved,
+          pending: results.pending,
+          errors: results.errors
+        },
+        transactions: results.details,
+        date: new Date().toISOString().split('T')[0]
+      });
+      log('Telegram summary sent successfully');
+    } catch (error) {
+      log(`Failed to send Telegram summary: ${error.message}`, 'ERROR');
+      // Don't fail the whole process if Telegram fails
+    }
 
     return results;
 

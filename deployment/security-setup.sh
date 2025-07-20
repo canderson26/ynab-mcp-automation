@@ -14,14 +14,39 @@ LOG_FILE="/opt/ynab-mcp/logs/security.log"
 TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN}"
 TELEGRAM_CHAT_ID="${TELEGRAM_CHAT_ID}"
 
-# Function to send Telegram alert
+# Function to send Telegram alert via MCP server
 send_alert() {
     local message="$1"
-    if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
-        curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
-            -d "chat_id=$TELEGRAM_CHAT_ID" \
-            -d "text=🚨 YNAB Server Alert: $message" \
-            -d "parse_mode=HTML" > /dev/null 2>&1
+    local alert_type="${2:-ssh_login}"
+    local severity="${3:-medium}"
+    
+    # Try to use MCP Telegram server first
+    if command -v docker >/dev/null 2>&1; then
+        docker exec -i ynab-mcp-telegram-server-1 node -e "
+            const { spawn } = require('child_process');
+            const mcpInput = JSON.stringify({
+                jsonrpc: '2.0',
+                id: Date.now(),
+                method: 'tools/call',
+                params: {
+                    name: 'sendSecurityAlert',
+                    arguments: {
+                        alertType: '$alert_type',
+                        details: '$message',
+                        severity: '$severity'
+                    }
+                }
+            });
+            process.stdout.write(mcpInput + '\n');
+        " 2>/dev/null || {
+            # Fallback to direct Telegram API
+            if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
+                curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
+                    -d "chat_id=$TELEGRAM_CHAT_ID" \
+                    -d "text=🚨 YNAB Server Alert: $message" \
+                    -d "parse_mode=HTML" > /dev/null 2>&1
+            fi
+        }
     fi
     echo "$(date): $message" >> "$LOG_FILE"
 }

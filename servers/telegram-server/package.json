@@ -1,0 +1,19 @@
+{
+  "name": "telegram-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP server for Telegram notifications and commands",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "dotenv": "^16.3.1",
+    "node-fetch": "^3.3.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
