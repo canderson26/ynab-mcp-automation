@@ -315,6 +315,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
 });
 
+// Handle server shutdown
+process.on('SIGINT', () => {
+  console.error('Shutting down Telegram server...');
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  console.error('Shutting down Telegram server...');
+  process.exit(0);
+});
+
 // Start the server
 async function main() {
   const transport = new StdioServerTransport();

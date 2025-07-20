@@ -1,0 +1,43 @@
+{
+  "name": "ynab-mcp-automation",
+  "version": "1.0.0",
+  "description": "YNAB Budget Automation with Claude MCP Servers",
+  "type": "module",
+  "scripts": {
+    "start": "docker-compose up -d",
+    "stop": "docker-compose down",
+    "logs": "docker-compose logs -f",
+    "test": "node tests/budget-validation.test.js",
+    "test:integration": "npm run start && sleep 5 && node tests/integration.test.js && npm run stop",
+    "build": "docker-compose build",
+    "deploy": "bash deployment/setup-vps.sh",
+    "daily-categorization": "node automation/run-daily-categorization.js",
+    "health-check": "docker-compose ps && docker-compose exec ynab-server node -e \"console.log('Health check passed')\"",
+    "backup": "docker-compose exec merchant-server node -e \"require('./database.js').backupDatabase('/app/data/backup-' + new Date().toISOString().split('T')[0] + '.db')\"",
+    "clean": "docker-compose down -v && docker system prune -f"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "dotenv": "^16.3.1",
+    "node-fetch": "^3.3.2",
+    "better-sqlite3": "^9.2.2"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/ynab-mcp-automation.git"
+  },
+  "keywords": [
+    "ynab",
+    "budget",
+    "automation",
+    "claude",
+    "mcp",
+    "docker"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+}

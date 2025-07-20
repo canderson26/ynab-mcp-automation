@@ -9,28 +9,85 @@ export class YnabClient {
       'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json'
     };
+    
+    // Rate limiting: YNAB allows 200 requests per hour
+    this.rateLimiter = {
+      requests: [],
+      maxRequests: 200,
+      windowMs: 60 * 60 * 1000 // 1 hour
+    };
   }
 
-  // Helper method for API requests
-  async request(method, endpoint, body = null) {
-    const url = `${this.baseUrl}${endpoint}`;
-    const options = {
-      method,
-      headers: this.headers
-    };
-
-    if (body) {
-      options.body = JSON.stringify(body);
+  // Check rate limit before making request
+  checkRateLimit() {
+    const now = Date.now();
+    
+    // Remove requests outside the current window
+    this.rateLimiter.requests = this.rateLimiter.requests.filter(
+      requestTime => now - requestTime < this.rateLimiter.windowMs
+    );
+    
+    // Check if we're at the limit
+    if (this.rateLimiter.requests.length >= this.rateLimiter.maxRequests) {
+      const oldestRequest = Math.min(...this.rateLimiter.requests);
+      const resetTime = oldestRequest + this.rateLimiter.windowMs;
+      const waitTime = resetTime - now;
+      throw new Error(`YNAB API rate limit exceeded. Reset in ${Math.ceil(waitTime / 1000)} seconds.`);
     }
+    
+    // Record this request
+    this.rateLimiter.requests.push(now);
+  }
 
-    const response = await fetch(url, options);
-    const data = await response.json();
+  // Helper method for API requests with rate limiting and retries
+  async request(method, endpoint, body = null, retryCount = 0) {
+    try {
+      // Check rate limit
+      this.checkRateLimit();
+      
+      const url = `${this.baseUrl}${endpoint}`;
+      const options = {
+        method,
+        headers: this.headers
+      };
 
-    if (!response.ok) {
-      throw new Error(data.error?.detail || `YNAB API error: ${response.status}`);
+      if (body) {
+        options.body = JSON.stringify(body);
+      }
+
+      const response = await fetch(url, options);
+      
+      // Handle rate limiting from YNAB
+      if (response.status === 429) {
+        const retryAfter = response.headers.get('retry-after') || 60;
+        throw new Error(`YNAB API rate limited. Retry after ${retryAfter} seconds.`);
+      }
+      
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error?.detail || `YNAB API error: ${response.status} ${response.statusText}`);
+      }
+
+      return data.data;
+      
+    } catch (error) {
+      console.error(`YNAB API error (attempt ${retryCount + 1}): ${error.message}`);
+      
+      // Retry on certain errors
+      if (retryCount < 2 && (
+        error.message.includes('rate limited') ||
+        error.message.includes('timeout') ||
+        error.message.includes('ECONNRESET')
+      )) {
+        const delay = Math.pow(2, retryCount) * 1000; // Exponential backoff
+        console.log(`Retrying YNAB API call in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return this.request(method, endpoint, body, retryCount + 1);
+      }
+      
+      throw error;
     }
-
-    return data.data;
   }
 
   // Get current month in YYYY-MM format

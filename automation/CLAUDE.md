@@ -73,51 +73,129 @@ categories:
 ```yaml
 bills:
   # Fixed bills with due dates
-  - name: "Mortgage"
-    amount: 2400
-    due_day: 1
-    category: "Mortgage"
-    priority: 1
-    
   - name: "HOA"
-    amount: 250
-    due_day: 1
+    amount: 324
+    due_day: 10
     category: "HOA"
     priority: 1
     
   - name: "Daycare"
-    amount: 1600
-    due_day: 5
+    amount: 485
+    due_day: 15  # Weekly - use mid-month
     category: "Daycare"
     priority: 1
     
   - name: "Internet"
-    amount: 80
-    due_day: 10
+    amount: 89.99
+    due_day: 23
     category: "Internet"
     priority: 2
     
   - name: "Car Insurance"
-    amount: 300
-    due_day: 15
+    amount: 183.83
+    due_day: 27
     category: "Car Insurance"
     priority: 1
     
-  - name: "Term Life Insurance"
-    amount: 125
-    due_day: 20
+  - name: "Term Life Insurance (Charlie)"
+    amount: 52.13
+    due_day: 13
     category: "Term Life Insurance"
     priority: 2
     
-  - name: "Cell Phone"
-    amount: 140
-    due_day: 22
-    category: "Cell Phone"
+  - name: "Term Life Insurance (Lauren)"
+    amount: 44.87
+    due_day: 1
+    category: "Term Life Insurance"
+    priority: 2
+    
+  - name: "Term Life Insurance (TransAmerica)"
+    amount: 56.95
+    due_day: 10
+    category: "Term Life Insurance"
+    priority: 2
+    
+  - name: "Cars"
+    amount: 477.25
+    due_day: 20
+    category: "Cars"
+    priority: 1
+    
+  - name: "6840 Boot Renovation"
+    amount: 149
+    due_day: 24
+    category: "6840 Boot Renovation"
+    priority: 1
+    
+  - name: "HVAC"
+    amount: 180.09
+    due_day: 27
+    category: "HVAC"
+    priority: 1
+    
+  - name: "Home Gym Equipment"
+    amount: 57
+    due_day: 16
+    category: "Home Gym Equipment"
+    priority: 1
+    
+  - name: "Security System"
+    amount: 59.99
+    due_day: 3
+    category: "Security System"
+    priority: 2
+    
+  - name: "YNAB"
+    amount: 9.08
+    due_day: 6  # yearly - use early month
+    category: "Ynab"
+    priority: 2
+    
+  - name: "Calvary Road Christian School (1st half)"
+    amount: 680
+    due_day: 5
+    category: "St. Marks Montessori Tuition"
+    priority: 1
+    
+  - name: "Calvary Road Christian School (2nd half)"
+    amount: 680
+    due_day: 20
+    category: "St. Marks Montessori Tuition"
+    priority: 1
+    
+  - name: "TV (YouTube TV)"
+    amount: 82.99
+    due_day: 23
+    category: "TV"
+    priority: 2
+    
+  - name: "TV (Disney Plus)"
+    amount: 16.99
+    due_day: 8
+    category: "TV"
+    priority: 2
+    
+  - name: "TV (Netflix)"
+    amount: 7.99
+    due_day: 15
+    category: "TV"
+    priority: 2
+    
+  - name: "Spotify"
+    amount: 19.99
+    due_day: 10
+    category: "Spotify"
+    priority: 2
+    
+  - name: "Supplements"
+    amount: 175.24
+    due_day: 9
+    category: "Supplements"
     priority: 2
     
   # Variable bills (estimated)
   - name: "Utilities"
-    amount: 250  # Higher in summer/winter
+    amount: 220
     category: "Utilities"
     variable: true
     priority: 2
@@ -126,54 +204,71 @@ bills:
 ## Target Monthly Amounts
 ```yaml
 targets:
+  # Fixed bills (covered by bills section timing)
+  "HOA": 108                           # $324 quarterly ÷ 3
+  "Daycare": 1940                      # $485 weekly × 4
+  "Internet": 89.99
+  "Car Insurance": 183.83
+  "Term Life Insurance": 153.95       # $52.13 + $44.87 + $56.95
+  "Cars": 477.25
+  "6840 Boot Renovation": 149.00
+  "HVAC": 180.09
+  "Home Gym Equipment": 57.00
+  "Security System": 59.99
+  "Ynab": 9.08
+  "St. Marks Montessori Tuition": 1360  # $680 × 2
+  "TV": 135.97                         # YouTube + Disney + Netflix + GotTV
+  "Spotify": 19.99
+  "Supplements": 225.24               # $175.24 bill + $50 additional
+  "Utilities": 220                     # Variable estimate
+  
   # Essential variable spending
-  "Groceries": 650
-  "Gas & Transportation": 250
-  "Misc Needs (Diapers etc.)": 200
-  "Dog Food": 50
+  "Groceries": 1200
+  "Gas & Transportation": 200
+  "Misc Needs (Diapers etc.)": 150
+  "Dog Food": 80
   
   # Personal care
-  "Haircut": 40
+  "Haircut": 99.98
   "Havie's Haircut": 25
-  "Supplements": 50
+  "Gym": 85
   
   # Discretionary
-  "Fun Money": 200
-  "Oliver Fun Money": 100
-  "Dining Out": 300
+  "Fun Money": 400
+  "Dining Out": 140
+  "Vacation": 1000
+  
+  # Services and subscriptions
+  "Housekeeping": 320
+  "Claude": 100
   
   # Irregular/cushion
-  "Stuff I Forgot to Budget For": 200
+  "Stuff I Forgot to Budget For": 225.02
   
-  # Services
-  "Housekeeping": 200
-  "Gym": 50
+  # Top priority savings
+  "Brokerage": 6736.40
+  "Emergency": 773.44                  # Updated to balance budget perfectly
 ```
 
 ## Savings Goals
 ```yaml
 savings:
-  # Percentage-based (of paycheck)
+  # Fixed monthly amounts (from targets section)
   "Emergency": 
-    type: percentage
-    amount: 10
+    type: fixed
+    amount: 773.44
     priority: high
     
   "Brokerage":
-    type: percentage
-    amount: 15
-    priority: medium
-    applies_to: ["Accenture"]  # Only from Accenture paychecks
+    type: fixed
+    amount: 6736.40
+    priority: highest
     
-  # Fixed amounts
+  # Vacation and other savings built into monthly targets
   "Vacation":
     type: fixed
-    amount: 200
-    priority: low
-    
-  "6840 Boot Renovation":
-    type: remainder  # Gets whatever is left
-    priority: low
+    amount: 1000
+    priority: medium
 ```
 
 ## Paycheck Information
@@ -181,18 +276,18 @@ savings:
 paychecks:
   Accenture:
     schedule: semi_monthly
-    days: [15, -1]  # 15th and last day of month
-    typical_amount: 3850
+    days: [6, 21]  # 6th and 21st of month
+    typical_amount: 4384.84
     allocation_strategy: "bills_first"
     covers_bills:
-      - first_check: [15, 31]  # Bills due 15th-31st
-      - second_check: [1, 14]  # Bills due 1st-14th
+      - first_check: [1, 15]   # Bills due 1st-15th
+      - second_check: [16, 31] # Bills due 16th-31st
       
   OrthoVA:
     schedule: bi_weekly
-    typical_amount: 1300
+    typical_amount: 3748.45
     allocation_strategy: "top_up_variable"
-    last_known_date: "2024-01-05"  # Track 14-day cycles from this
+    last_known_date: "2025-07-10"  # Recent pay date provided
 ```
 
 ## Allocation Rules
@@ -242,8 +337,64 @@ When doing budget sessions, I should understand these natural language requests:
 5. **Three-paycheck months are bonuses** - Extra to savings/debt
 
 ## Quick Reference
-- Total fixed bills: ~$5,115/month
-- Essential variable spending: ~$1,150/month  
-- Discretionary targets: ~$600/month
-- Typical monthly income: ~$8,900 (2 Accenture + 2 OrthoVA)
-- Savings rate goal: 20-25% of gross income
+- Total fixed bills: $5,535.32/month
+- Essential variable spending: $1,630/month  
+- Discretionary/Personal: $1,990/month
+- Savings targets: $7,509.84/month (Brokerage $6,736.40 + Emergency $773.44)
+- Monthly income: $16,904.22 (2 Accenture + 2.17 OrthoVA avg)
+- Total savings rate: 44.4% ($7,509.84 of $16,904.22)
+- Budget balance: EXACTLY $0 surplus
+
+## Merchant Categorization Rules
+
+### Auto-Approval Limits by Category
+```yaml
+auto_approval_limits:
+  "Groceries": 150          # Auto-approve up to $150
+  "Gas & Transportation": 75 # Auto-approve up to $75
+  "Dining Out": 50          # Auto-approve up to $50
+  "Fun Money": 100          # Auto-approve up to $100
+  "Daycare": 1000           # Auto-approve up to $1000 for known providers
+  "Utilities": 300          # Auto-approve known providers up to $300
+  "Cell Phone": 150         # Auto-approve known providers
+  "Internet": 100           # Auto-approve known providers
+  "Car Insurance": 200      # Auto-approve known providers
+  "Gym": 100               # Auto-approve known providers
+  "Claude": 120            # Auto-approve up to $120 (covers monthly + overages)
+  "Spotify": 25            # Auto-approve up to $25
+  "TV": 60                 # Auto-approve up to $60
+```
+
+### Common Merchant Patterns
+```yaml
+merchant_patterns:
+  groceries:
+    - "Kroger"
+    - "Walmart" 
+    - "Target"
+    - "Whole Foods"
+    - "Costco"
+    - "Sam's Club"
+    
+  gas_transportation:
+    - "Shell"
+    - "Chevron" 
+    - "BP"
+    - "Exxon"
+    - "Uber"
+    - "Lyft"
+    
+  dining_out:
+    - "McDonald's"
+    - "Chipotle"
+    - "Starbucks"
+    - "DoorDash"
+    - "Uber Eats"
+    
+  subscriptions:
+    - "Spotify"
+    - "Claude"
+    - "Netflix" 
+    - "Hulu"
+    - "Disney"
+```

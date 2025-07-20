@@ -9,6 +9,7 @@ import { spawn } from 'child_process';
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import fetch from 'node-fetch';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -32,54 +33,72 @@ function log(message, level = 'INFO') {
   }
 }
 
-// Call Claude API with our categorization prompt
-async function callClaude(prompt) {
-  // Check API limits first
-  const { spawn } = await import('child_process');
-  const checkLimit = spawn('node', ['/opt/ynab-mcp/api-limiter.js', 'check', 'claude']);
-  
-  await new Promise((resolve, reject) => {
-    checkLimit.on('close', (code) => {
-      if (code !== 0) {
-        reject(new Error('Claude API daily limit exceeded'));
-      } else {
-        resolve();
-      }
+// Call Claude API with retry logic and proper error handling
+async function callClaude(prompt, retryCount = 0) {
+  try {
+    // Check API limits first
+    const { spawn } = await import('child_process');
+    const checkLimit = spawn('node', ['/opt/ynab-mcp/api-limiter.js', 'check', 'claude']);
+    
+    await new Promise((resolve, reject) => {
+      checkLimit.on('close', (code) => {
+        if (code !== 0) {
+          reject(new Error('Claude API daily limit exceeded'));
+        } else {
+          resolve();
+        }
+      });
     });
-  });
 
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': CONFIG.claudeApiKey,
-      'anthropic-version': '2023-06-01'
-    },
-    body: JSON.stringify({
-      model: 'claude-3-sonnet-20240229',
-      max_tokens: 1000,
-      messages: [{
-        role: 'user',
-        content: prompt
-      }]
-    })
-  });
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': CONFIG.claudeApiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: prompt
+        }]
+      })
+    });
 
-  if (!response.ok) {
-    throw new Error(`Claude API error: ${response.status} ${response.statusText}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Claude API error: ${response.status} ${response.statusText} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    
+    if (!data.content || !data.content[0] || !data.content[0].text) {
+      throw new Error('Invalid response format from Claude API');
+    }
+    
+    // Record API usage (estimate $0.003 per call for Sonnet)
+    const recordUsage = spawn('node', ['/opt/ynab-mcp/api-limiter.js', 'record', 'claude', '0.003']);
+    recordUsage.on('close', () => {}); // Fire and forget
+    
+    return data.content[0].text;
+    
+  } catch (error) {
+    log(`Claude API error (attempt ${retryCount + 1}): ${error.message}`, 'ERROR');
+    
+    if (retryCount < CONFIG.maxRetries) {
+      log(`Retrying Claude API call in ${CONFIG.retryDelay}ms...`, 'INFO');
+      await new Promise(resolve => setTimeout(resolve, CONFIG.retryDelay));
+      return callClaude(prompt, retryCount + 1);
+    }
+    
+    throw error;
   }
-
-  const data = await response.json();
-  
-  // Record API usage (estimate $0.02 per call)
-  const recordUsage = spawn('node', ['/opt/ynab-mcp/api-limiter.js', 'record', 'claude', '0.02']);
-  recordUsage.on('close', () => {}); // Fire and forget
-  
-  return data.content[0].text;
 }
 
-// Execute MCP tool via Docker
-async function executeMCPTool(server, tool, args = {}) {
+// Execute MCP tool via Docker with retry logic
+async function executeMCPTool(server, tool, args = {}, retryCount = 0) {
   return new Promise((resolve, reject) => {
     const dockerCmd = [
       'exec', '-i', 
@@ -95,7 +114,7 @@ async function executeMCPTool(server, tool, args = {}) {
         name: tool,
         arguments: args
       }
-    });
+    }) + '\n';
 
     const child = spawn('docker', dockerCmd, {
       stdio: ['pipe', 'pipe', 'pipe']
@@ -103,6 +122,13 @@ async function executeMCPTool(server, tool, args = {}) {
 
     let stdout = '';
     let stderr = '';
+    let timeoutId;
+
+    // Set timeout for MCP calls
+    timeoutId = setTimeout(() => {
+      child.kill('SIGTERM');
+      reject(new Error(`MCP call timeout after 30 seconds`));
+    }, 30000);
 
     child.stdout.on('data', (data) => {
       stdout += data.toString();
@@ -113,27 +139,80 @@ async function executeMCPTool(server, tool, args = {}) {
     });
 
     child.on('close', (code) => {
+      clearTimeout(timeoutId);
+      
       if (code === 0) {
         try {
-          const response = JSON.parse(stdout);
+          // Handle multiple JSON responses (MCP can send multiple lines)
+          const lines = stdout.trim().split('\n').filter(line => line.trim());
+          let response = null;
+          
+          for (const line of lines) {
+            try {
+              const parsed = JSON.parse(line);
+              if (parsed.result || parsed.error) {
+                response = parsed;
+                break;
+              }
+            } catch (e) {
+              // Skip invalid JSON lines
+              continue;
+            }
+          }
+          
+          if (!response) {
+            throw new Error(`No valid MCP response found in output: ${stdout}`);
+          }
+          
           if (response.result) {
-            resolve(JSON.parse(response.result.content[0].text));
+            // Handle different result formats
+            if (response.result.content && response.result.content[0]) {
+              resolve(JSON.parse(response.result.content[0].text));
+            } else {
+              resolve(response.result);
+            }
           } else if (response.error) {
-            reject(new Error(response.error.message));
+            reject(new Error(`MCP error: ${response.error.message}`));
           } else {
             resolve(response);
           }
         } catch (e) {
           log(`Parse error: ${e.message}, stdout: ${stdout}`, 'ERROR');
-          reject(new Error(`Failed to parse MCP response: ${e.message}`));
+          
+          // Retry on parse errors
+          if (retryCount < CONFIG.maxRetries) {
+            log(`Retrying MCP call to ${server}/${tool} in ${CONFIG.retryDelay}ms...`, 'INFO');
+            setTimeout(() => {
+              executeMCPTool(server, tool, args, retryCount + 1)
+                .then(resolve)
+                .catch(reject);
+            }, CONFIG.retryDelay);
+          } else {
+            reject(new Error(`Failed to parse MCP response after ${CONFIG.maxRetries} retries: ${e.message}`));
+          }
         }
       } else {
-        reject(new Error(`MCP call failed: ${stderr}`));
+        // Retry on Docker execution failures
+        if (retryCount < CONFIG.maxRetries) {
+          log(`Docker exec failed (attempt ${retryCount + 1}), retrying in ${CONFIG.retryDelay}ms...`, 'WARN');
+          setTimeout(() => {
+            executeMCPTool(server, tool, args, retryCount + 1)
+              .then(resolve)
+              .catch(reject);
+          }, CONFIG.retryDelay);
+        } else {
+          reject(new Error(`MCP call failed after ${CONFIG.maxRetries} retries. Code: ${code}, stderr: ${stderr}`));
+        }
       }
     });
 
+    child.on('error', (error) => {
+      clearTimeout(timeoutId);
+      reject(new Error(`Docker exec error: ${error.message}`));
+    });
+
     // Send input and close stdin
-    child.stdin.write(mcpInput + '\n');
+    child.stdin.write(mcpInput);
     child.stdin.end();
   });
 }
@@ -260,8 +339,15 @@ async function categorizeTransaction(transaction, categories) {
 
   } catch (error) {
     log(`Error categorizing transaction ${transaction.id}: ${error.message}`, 'ERROR');
+    
+    // Use a validated fallback category
+    const fallbackCategory = categories.includes('Stuff I Forgot to Budget For') 
+      ? 'Stuff I Forgot to Budget For'
+      : categories.find(cat => cat.toLowerCase().includes('miscellaneous') || cat.toLowerCase().includes('other'))
+      || categories[0]; // Use first category as last resort
+    
     return {
-      category: 'Stuff I Forgot to Budget For', // Fallback category
+      category: fallbackCategory,
       confidence: 0,
       reasoning: `Error during categorization: ${error.message}`,
       source: 'error'

@@ -8,8 +8,15 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 export class MerchantDatabase {
   constructor(dbPath) {
     this.db = new Database(dbPath);
+    
+    // Configure for concurrent access
     this.db.pragma('journal_mode = WAL');
     this.db.pragma('foreign_keys = ON');
+    this.db.pragma('synchronous = NORMAL');
+    this.db.pragma('cache_size = 10000');
+    this.db.pragma('temp_store = MEMORY');
+    this.db.pragma('mmap_size = 268435456'); // 256MB
+    this.db.pragma('busy_timeout = 30000'); // 30 second timeout
     
     // Initialize schema
     this.initializeSchema();

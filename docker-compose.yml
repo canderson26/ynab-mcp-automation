@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  ynab-server:
+    build:
+      context: ./servers/ynab-server
+      dockerfile: Dockerfile
+    container_name: ynab-mcp-ynab-server-1
+    environment:
+      - NODE_ENV=production
+      - YNAB_API_KEY=${YNAB_API_KEY}
+      - BUDGET_ID=${BUDGET_ID}
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    restart: unless-stopped
+    networks:
+      - ynab-mcp
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+    healthcheck:
+      test: ["CMD", "sh", "-c", "echo '{}' | node index.js | grep -q 'healthy' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  merchant-server:
+    build:
+      context: ./servers/merchant-server
+      dockerfile: Dockerfile
+    container_name: ynab-mcp-merchant-server-1
+    environment:
+      - NODE_ENV=production
+      - DATABASE_PATH=/app/data/merchant_data.db
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    restart: unless-stopped
+    networks:
+      - ynab-mcp
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+    healthcheck:
+      test: ["CMD", "sh", "-c", "echo '{}' | node index.js | grep -q 'healthy' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  telegram-server:
+    build:
+      context: ./servers/telegram-server
+      dockerfile: Dockerfile
+    container_name: ynab-mcp-telegram-server-1
+    environment:
+      - NODE_ENV=production
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+    networks:
+      - ynab-mcp
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+    healthcheck:
+      test: ["CMD", "sh", "-c", "echo '{}' | node index.js | grep -q 'healthy' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  ynab-mcp:
+    driver: bridge
+
+volumes:
+  data:
+  logs:
