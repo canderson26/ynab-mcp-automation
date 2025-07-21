@@ -537,15 +537,19 @@ class CategorizationService {
       const processedTransactions = [];
       
       for (const transaction of result.transactions) {
+        let categorization = null;
+        let categoryId = null;
+        let shouldAutoApprove = false;
+        
         try {
-          const categorization = await this.categorizeTransaction(transaction, categories);
+          categorization = await this.categorizeTransaction(transaction, categories);
           
           // Find category ID
           const category = categories.find(c => c.name === categorization.category);
-          const categoryId = category ? category.id : null;
+          categoryId = category ? category.id : null;
           
           // Auto-approve if confidence is high
-          const shouldAutoApprove = categorization.confidence >= 0.95 && categorization.source !== 'error';
+          shouldAutoApprove = categorization.confidence >= 0.95 && categorization.source !== 'error';
           
           // Update transaction
           const memo = `[AI: ${categorization.category} (${(categorization.confidence * 100).toFixed(0)}%)]`;
@@ -584,11 +588,10 @@ class CategorizationService {
           log(`Error processing transaction ${transaction.id}: ${error.message}`, 'ERROR');
           
           // Check if YNAB update succeeded despite merchant DB error
-          if (error.message.includes('SQLite3') && categorization && categoryId !== undefined) {
+          if (error.message.includes('SQLite3') && categorization && categoryId !== null) {
             log(`YNAB update likely succeeded for ${transaction.payee_name}, counting as processed`, 'WARN');
             
             stats.processed++;
-            const shouldAutoApprove = categorization.confidence >= 0.95 && categorization.source !== 'error';
             if (shouldAutoApprove) {
               stats.approved++;
             } else {
