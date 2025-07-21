@@ -30,7 +30,7 @@ cd ../..
 chmod +x mcp-bridges/*.js
 
 # Start the new HTTP MCP servers
-docker-compose -f docker-compose-http.yml up -d
+docker-compose up -d
 
 # Verify they're running
 curl http://localhost:3001/health  # YNAB server
@@ -70,21 +70,19 @@ If you want to use Claude Code with your YNAB data:
 ```bash
 # Copy MCP configuration to Claude Code config location
 mkdir -p ~/.config/claude-code
-cp claude-mcp-config-simple.json ~/.config/claude-code/mcp_servers.json
+cp claude-mcp-config.json ~/.config/claude-code/mcp_servers.json
 
 # Or if Claude Code uses a different config location:
-cp claude-mcp-config-simple.json /path/to/claude-code-config/
+cp claude-mcp-config.json /path/to/claude-code-config/
 ```
 
-### 5. Stop Old Docker Containers
+### 5. Clean Up (Already Done)
 
-```bash
-# Stop the old containers that were constantly restarting
-docker-compose down
-
-# Clean up old containers
-docker system prune -f
-```
+The old broken code has been removed:
+- ✅ Old stdio MCP servers deleted
+- ✅ Old automation script deleted  
+- ✅ Main docker-compose.yml now uses HTTP servers
+- ✅ Single MCP config file
 
 ## Testing
 
@@ -160,8 +158,7 @@ ynab-mcp-automation/
 │   ├── categorization-service.service # Systemd service
 │   ├── install-service.sh             # Service installer
 │   └── NEW_ARCHITECTURE_DEPLOYMENT.md # This guide
-├── docker-compose-http.yml            # New persistent HTTP containers
-└── docker-compose.yml                 # Old containers (backup)
+└── docker-compose.yml                 # Persistent HTTP containers
 ```
 
 ## Troubleshooting
@@ -181,13 +178,13 @@ sudo systemctl restart categorization-service
 ### HTTP MCP Server Issues
 ```bash
 # Check container status
-docker-compose -f docker-compose-http.yml ps
+docker-compose ps
 
 # View container logs
-docker-compose -f docker-compose-http.yml logs ynab-http-server
+docker-compose logs ynab-http-server
 
 # Restart containers
-docker-compose -f docker-compose-http.yml restart
+docker-compose restart
 ```
 
 ### Claude Code Connection Issues

@@ -2,23 +2,26 @@
   "mcpServers": {
     "ynab": {
       "command": "node",
-      "args": ["-e", "const fetch = require('node-fetch'); const process = require('process'); const stdin = process.stdin; const stdout = process.stdout; stdin.setEncoding('utf8'); let buffer = ''; stdin.on('data', async (chunk) => { buffer += chunk; const lines = buffer.split('\\n'); buffer = lines.pop() || ''; for (const line of lines) { if (line.trim()) { try { const request = JSON.parse(line); const response = await fetch('http://localhost:3001/mcp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request) }); const result = await response.json(); stdout.write(JSON.stringify(result) + '\\n'); } catch (error) { stdout.write(JSON.stringify({ jsonrpc: '2.0', id: request.id || null, error: { code: -32603, message: error.message } }) + '\\n'); } } } }); stdin.on('end', () => process.exit(0));"],
+      "args": ["mcp-bridges/ynab-bridge.js"],
+      "cwd": "/home/ynab-mcp/ynab-mcp-automation",
       "env": {
-        "NODE_PATH": "/usr/local/lib/node_modules"
+        "YNAB_MCP_URL": "http://localhost:3001/mcp"
       }
     },
     "merchant": {
       "command": "node",
-      "args": ["-e", "const fetch = require('node-fetch'); const process = require('process'); const stdin = process.stdin; const stdout = process.stdout; stdin.setEncoding('utf8'); let buffer = ''; stdin.on('data', async (chunk) => { buffer += chunk; const lines = buffer.split('\\n'); buffer = lines.pop() || ''; for (const line of lines) { if (line.trim()) { try { const request = JSON.parse(line); const response = await fetch('http://localhost:3002/mcp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request) }); const result = await response.json(); stdout.write(JSON.stringify(result) + '\\n'); } catch (error) { stdout.write(JSON.stringify({ jsonrpc: '2.0', id: request.id || null, error: { code: -32603, message: error.message } }) + '\\n'); } } } }); stdin.on('end', () => process.exit(0));"],
+      "args": ["mcp-bridges/merchant-bridge.js"],
+      "cwd": "/home/ynab-mcp/ynab-mcp-automation",
       "env": {
-        "NODE_PATH": "/usr/local/lib/node_modules"
+        "MERCHANT_MCP_URL": "http://localhost:3002/mcp"
       }
     },
     "telegram": {
       "command": "node",
-      "args": ["-e", "const fetch = require('node-fetch'); const process = require('process'); const stdin = process.stdin; const stdout = process.stdout; stdin.setEncoding('utf8'); let buffer = ''; stdin.on('data', async (chunk) => { buffer += chunk; const lines = buffer.split('\\n'); buffer = lines.pop() || ''; for (const line of lines) { if (line.trim()) { try { const request = JSON.parse(line); const response = await fetch('http://localhost:3003/mcp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request) }); const result = await response.json(); stdout.write(JSON.stringify(result) + '\\n'); } catch (error) { stdout.write(JSON.stringify({ jsonrpc: '2.0', id: request.id || null, error: { code: -32603, message: error.message } }) + '\\n'); } } } }); stdin.on('end', () => process.exit(0));"],
+      "args": ["mcp-bridges/telegram-bridge.js"],
+      "cwd": "/home/ynab-mcp/ynab-mcp-automation",
       "env": {
-        "NODE_PATH": "/usr/local/lib/node_modules"
+        "TELEGRAM_MCP_URL": "http://localhost:3003/mcp"
       }
     }
   }
