@@ -1,0 +1,46 @@
+# YNAB Client Date Format Fix
+# This patch fixes the getCurrentMonth() method to return the correct date format
+# that YNAB's API expects: YYYY-MM-01 instead of YYYY-MM
+
+## Problem
+The getCategories and getReadyToAssign MCP tools were failing with "Resource not found" 
+because the getCurrentMonth() method was returning '2025-07' format, but YNAB's API
+expects '2025-07-01' format.
+
+## Solution
+Change the getCurrentMonth() method in servers/ynab-server/ynab-client.js:
+
+**FROM:**
+```javascript
+getCurrentMonth() {
+  const date = new Date();
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+```
+
+**TO:**
+```javascript
+getCurrentMonth() {
+  const date = new Date();
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-01`;
+}
+```
+
+## Files to Update
+- servers/ynab-server/ynab-client.js (line ~155)
+
+## After Applying Fix
+1. Restart the YNAB HTTP server: `docker-compose restart ynab-http-server`
+2. Test MCP tools in Claude Code:
+   - "Show me my categories" should work
+   - "What's my ready to assign amount?" should work
+
+## Verification
+You can test the fix by running:
+```bash
+curl -s -X POST http://147.182.171.171:3001/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"getCategories","arguments":{}}}' | jq .
+```
+
+This should return category data instead of a "Resource not found" error.
