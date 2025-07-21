@@ -3,8 +3,9 @@ version: '3.8'
 services:
   ynab-http-server:
     build: 
-      context: ./servers/ynab-http-server
-      dockerfile: ../../Dockerfile.http-server
+      context: .
+      dockerfile: Dockerfile.http-server
+    command: ["node", "servers/ynab-http-server/index.js"]
     ports:
       - "3001:3001"
     environment:
@@ -25,8 +26,9 @@ services:
 
   merchant-http-server:
     build: 
-      context: ./servers/merchant-http-server
-      dockerfile: ../../Dockerfile.http-server
+      context: .
+      dockerfile: Dockerfile.http-server
+    command: ["node", "servers/merchant-http-server/index.js"]
     ports:
       - "3002:3002"
     environment:
@@ -49,8 +51,9 @@ services:
 
   telegram-http-server:
     build: 
-      context: ./servers/telegram-http-server
-      dockerfile: ../../Dockerfile.http-server
+      context: .
+      dockerfile: Dockerfile.http-server
+    command: ["node", "servers/telegram-http-server/index.js"]
     ports:
       - "3003:3003"
     environment:
