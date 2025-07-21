@@ -1,0 +1,28 @@
+{
+  "mcpServers": {
+    "ynab": {
+      "command": "node",
+      "args": ["mcp-bridges/ynab-bridge.js"],
+      "cwd": "/home/ynab-mcp/ynab-mcp-automation",
+      "env": {
+        "YNAB_MCP_URL": "http://localhost:3001/mcp"
+      }
+    },
+    "merchant": {
+      "command": "node",
+      "args": ["mcp-bridges/merchant-bridge.js"],
+      "cwd": "/home/ynab-mcp/ynab-mcp-automation",
+      "env": {
+        "MERCHANT_MCP_URL": "http://localhost:3002/mcp"
+      }
+    },
+    "telegram": {
+      "command": "node",
+      "args": ["mcp-bridges/telegram-bridge.js"],
+      "cwd": "/home/ynab-mcp/ynab-mcp-automation",
+      "env": {
+        "TELEGRAM_MCP_URL": "http://localhost:3003/mcp"
+      }
+    }
+  }
+}

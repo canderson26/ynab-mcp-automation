@@ -1,0 +1,29 @@
+[Unit]
+Description=YNAB Transaction Categorization Service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=ynab-mcp
+Group=ynab-mcp
+WorkingDirectory=/home/ynab-mcp/ynab-mcp-automation
+Environment=NODE_ENV=production
+EnvironmentFile=/home/ynab-mcp/ynab-mcp-automation/.env
+ExecStart=/usr/bin/node automation/categorization-service.js
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=ynab-categorization
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/ynab-mcp /home/ynab-mcp/ynab-mcp-automation/data
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+
+[Install]
+WantedBy=multi-user.target

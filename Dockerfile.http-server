@@ -1,0 +1,27 @@
+FROM node:18-alpine
+
+# Install curl for health checks
+RUN apk add --no-cache curl
+
+# Create app directory
+WORKDIR /app
+
+# Copy shared dependencies first (for caching)
+COPY package*.json ./
+RUN npm ci --only=production
+
+# Copy server-specific package.json
+COPY servers/*/package.json ./server-package.json
+RUN if [ -f server-package.json ]; then npm install $(grep '"' server-package.json | grep -v '"name"\|"version"\|"description"\|"main"\|"scripts"' | tr -d ' ,"' | cut -d: -f1 | xargs -I {} npm info {} latest | xargs); fi
+
+# Copy the entire servers directory structure
+COPY servers/ ./servers/
+
+# Copy environment files
+COPY .env* ./
+
+# Create necessary directories
+RUN mkdir -p /opt/data /opt/logs
+
+# The command will be overridden by docker-compose
+CMD ["node", "index.js"]
