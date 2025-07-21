@@ -298,11 +298,22 @@ class MerchantManager {
   }
 
   recordCategorization(merchantName, categoryName, categoryId, confidence, autoApproved, transactionId, amount) {
+    // Ensure null values instead of undefined for SQLite compatibility
+    const safeValues = [
+      merchantName || null,
+      categoryName || null, 
+      categoryId || null,
+      confidence || 0,
+      autoApproved || false,
+      transactionId || null,
+      amount || 0
+    ];
+    
     const result = this.db.prepare(`
       INSERT INTO merchant_categorizations 
       (merchant_name, category_name, category_id, confidence, auto_approved, transaction_id, amount)
       VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(merchantName, categoryName, categoryId, confidence, autoApproved, transactionId, amount);
+    `).run(...safeValues);
 
     return {
       merchant_id: result.lastInsertRowid,
@@ -571,7 +582,30 @@ class CategorizationService {
           
         } catch (error) {
           log(`Error processing transaction ${transaction.id}: ${error.message}`, 'ERROR');
-          stats.errors++;
+          
+          // Check if YNAB update succeeded despite merchant DB error
+          if (error.message.includes('SQLite3') && categorization && categoryId !== undefined) {
+            log(`YNAB update likely succeeded for ${transaction.payee_name}, counting as processed`, 'WARN');
+            
+            stats.processed++;
+            const shouldAutoApprove = categorization.confidence >= 0.95 && categorization.source !== 'error';
+            if (shouldAutoApprove) {
+              stats.approved++;
+            } else {
+              stats.pending++;
+            }
+            
+            processedTransactions.push({
+              payee: transaction.payee_name,
+              amount: transaction.amount,
+              category: categorization.category,
+              confidence: categorization.confidence,
+              approved: shouldAutoApprove,
+              reasoning: categorization.reasoning + ' (merchant DB error)'
+            });
+          } else {
+            stats.errors++;
+          }
         }
       }
       

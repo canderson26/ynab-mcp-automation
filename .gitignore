@@ -38,3 +38,29 @@ docker-compose.override.yml
 
 # MCP
 mcp-config.local.json
+  # Environment files
+  .env
+  .env.local
+  .env.production
+  *.env
+
+  # Database files
+  *.db
+  *.sqlite
+  *.sqlite3
+  data/
+
+  # Logs
+  logs/
+  *.log
+
+  # SSH keys
+  *.pem
+  *.key
+  id_rsa*
+  *.pub
+
+  # Secrets
+  secrets/
+  *.secret
+  
