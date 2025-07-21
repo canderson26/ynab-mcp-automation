@@ -178,12 +178,13 @@ async function handleToolCall(toolName, args) {
       };
       
     case 'updateTransaction':
-      const updated = await ynab.updateTransaction(
-        args.transactionId,
-        args.categoryId,
-        args.memo,
-        args.approved
-      );
+      // Build the updates object properly for YNAB API
+      const updates = {};
+      if (args.categoryId !== undefined) updates.category_id = args.categoryId;
+      if (args.memo !== undefined) updates.memo = args.memo;
+      if (args.approved !== undefined) updates.approved = args.approved;
+      
+      const updated = await ynab.updateTransaction(args.transactionId, updates);
       return {
         content: [{
           type: 'text',
