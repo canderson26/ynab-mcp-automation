@@ -269,7 +269,7 @@
         }
         
         .claude-logo-large {
-            font-size: 64px;
+            font-size: 96px;
             margin-bottom: 24px;
             opacity: 0.8;
             display: flex;
@@ -1030,22 +1030,31 @@
         /* Flapping bird animation */
         .flapping-bird {
             display: inline-block;
-            animation: flap 0.8s ease-in-out infinite;
             font-size: 16px;
+            position: relative;
         }
         
-        @keyframes flap {
+        .flapping-bird::before {
+            content: '🐦';
+            animation: flap-wings 0.6s infinite;
+        }
+        
+        @keyframes flap-wings {
             0%, 100% { 
-                transform: scaleX(1) rotateZ(0deg);
+                content: '🐦';
+                transform: translateY(0px);
             }
             25% { 
-                transform: scaleX(1.1) rotateZ(2deg);
+                content: '🕊️';
+                transform: translateY(-1px);
             }
             50% { 
-                transform: scaleX(1.2) rotateZ(0deg);
+                content: '🐦';
+                transform: translateY(-2px);
             }
             75% { 
-                transform: scaleX(1.1) rotateZ(-2deg);
+                content: '🕊️';
+                transform: translateY(-1px);
             }
         }
         
@@ -2403,7 +2412,7 @@
             
             const flappingBird = document.createElement('span');
             flappingBird.className = 'flapping-bird';
-            flappingBird.textContent = '🐦';
+            // Bird emoji is handled by CSS ::before content
             
             const typingText = document.createElement('span');
             typingText.textContent = 'thinking';
