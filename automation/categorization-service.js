@@ -432,9 +432,9 @@ Statistics:
 • Need review: ${stats.pending} ⏳
 
 ${stats.pending > 0 ? `Need Review (${stats.pending}):
-${transactions.filter(t => !t.approved).slice(0, 3).map(t => 
+${transactions.filter(t => t && !t.approved).slice(0, 3).map(t => 
   `• ${t.payee}: $${Math.abs(t.amount)} → ${t.category} (${(t.confidence * 100).toFixed(0)}%)`
-).join('\n')}${transactions.filter(t => !t.approved).length > 3 ? `\n• ... and ${transactions.filter(t => !t.approved).length - 3} more` : ''}` : ''}`;
+).join('\n')}${transactions.filter(t => t && !t.approved).length > 3 ? `\n• ... and ${transactions.filter(t => t && !t.approved).length - 3} more` : ''}` : ''}`;
 
     const response = await fetch(`https://api.telegram.org/bot${this.botToken}/sendMessage`, {
       method: 'POST',
