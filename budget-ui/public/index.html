@@ -342,6 +342,9 @@
         .message-role {
             font-weight: 600;
             margin-bottom: 8px;
+        }
+        
+        .message-role.emoji {
             font-size: 40px;
         }
         
@@ -1684,7 +1687,7 @@
             messageGroup.className = 'message-group assistant';
             
             const roleLabel = document.createElement('div');
-            roleLabel.className = 'message-role';
+            roleLabel.className = 'message-role emoji';
             roleLabel.textContent = '🐦';
             
             const message = document.createElement('div');
@@ -2403,7 +2406,7 @@
             typingIndicator.id = 'typing-indicator';
             
             const roleLabel = document.createElement('div');
-            roleLabel.className = 'message-role';
+            roleLabel.className = 'message-role emoji';
             roleLabel.textContent = '🐦';
             
             const typingMessage = document.createElement('div');
