@@ -1488,6 +1488,9 @@
                 currentChatId = generateChatId();
             }
             
+            // Clear the "cleared" flag if user starts new conversation
+            localStorage.removeItem('budget-assistant-cleared');
+            
             // Add to current messages
             currentMessages.push({
                 role: 'user',
@@ -2572,6 +2575,9 @@
                 // Generate a new chat ID for the next conversation
                 currentChatId = generateChatId();
                 
+                // Set flag to indicate user cleared chat (don't auto-load on refresh)
+                localStorage.setItem('budget-assistant-cleared', 'true');
+                
                 // Clear input field
                 const inputField = document.querySelector('.input-field');
                 inputField.value = '';
@@ -2588,10 +2594,16 @@
         window.addEventListener('load', function() {
             connectWebSocket();
             
+            // Check if user recently cleared chat (don't auto-load)
+            const wasCleared = localStorage.getItem('budget-assistant-cleared');
+            
             // Load existing chats or create new one
             updateChatSidebar();
-            if (Object.keys(chatSessions).length === 0) {
+            if (wasCleared === 'true' || Object.keys(chatSessions).length === 0) {
+                // User cleared chat or no saved chats - start fresh
                 createNewChat();
+                // Clear the flag
+                localStorage.removeItem('budget-assistant-cleared');
             } else {
                 // Load most recent chat
                 const sortedChats = Object.values(chatSessions)
