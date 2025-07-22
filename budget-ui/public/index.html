@@ -1685,7 +1685,7 @@
             
             const roleLabel = document.createElement('div');
             roleLabel.className = 'message-role';
-            roleLabel.textContent = '🧠';
+            roleLabel.textContent = '🐦';
             
             const message = document.createElement('div');
             message.className = 'message';
@@ -2404,7 +2404,7 @@
             
             const roleLabel = document.createElement('div');
             roleLabel.className = 'message-role';
-            roleLabel.textContent = '🧠';
+            roleLabel.textContent = '🐦';
             
             const typingMessage = document.createElement('div');
             typingMessage.className = 'typing-message';
@@ -2412,9 +2412,9 @@
             const typingContent = document.createElement('div');
             typingContent.className = 'typing-content';
             
-            const flappingBird = document.createElement('span');
-            flappingBird.className = 'flapping-bird';
-            flappingBird.textContent = ''; // Ensure completely empty - CSS handles the bird
+            const thinkingBrain = document.createElement('span');
+            thinkingBrain.textContent = '🧠';
+            thinkingBrain.style.fontSize = '16px';
             
             const typingText = document.createElement('span');
             typingText.textContent = 'thinking';
@@ -2429,7 +2429,7 @@
                 typingDots.appendChild(dot);
             }
             
-            typingContent.appendChild(flappingBird);
+            typingContent.appendChild(thinkingBrain);
             typingContent.appendChild(typingText);
             typingContent.appendChild(typingDots);
             typingMessage.appendChild(typingContent);
