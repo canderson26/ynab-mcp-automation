@@ -342,6 +342,7 @@
         .message-role {
             font-weight: 600;
             margin-bottom: 8px;
+            font-size: 20px;
         }
         
         .message-content {
@@ -1037,6 +1038,7 @@
         .flapping-bird::before {
             content: '🐦';
             animation: flap-wings 0.6s infinite;
+            display: inline-block;
         }
         
         @keyframes flap-wings {
@@ -2412,7 +2414,7 @@
             
             const flappingBird = document.createElement('span');
             flappingBird.className = 'flapping-bird';
-            // Bird emoji is handled by CSS ::before content
+            flappingBird.textContent = ''; // Ensure completely empty - CSS handles the bird
             
             const typingText = document.createElement('span');
             typingText.textContent = 'thinking';
