@@ -2552,9 +2552,16 @@
                 // Clear current messages
                 currentMessages = [];
                 
-                // Just clear the chat display, don't show welcome screen
+                // Remove only message elements, not the welcome screen
                 const chatMessages = document.querySelector('.chat-messages');
-                chatMessages.innerHTML = '';
+                const messageGroups = chatMessages.querySelectorAll('.message-group, .typing-indicator');
+                messageGroups.forEach(element => element.remove());
+                
+                // Hide welcome screen if it exists and is visible
+                const welcomeScreen = chatMessages.querySelector('.welcome-screen');
+                if (welcomeScreen) {
+                    welcomeScreen.style.display = 'none';
+                }
                 
                 // Delete the saved chat from localStorage
                 if (currentChatId && chatSessions[currentChatId]) {
