@@ -2548,48 +2548,13 @@
         
         // Clear current chat function
         function clearCurrentChat() {
-            if (confirm('Are you sure you want to clear this chat? This action cannot be undone.')) {
+            if (confirm('Are you sure you want to clear this chat history? This action cannot be undone.')) {
                 // Clear current messages
                 currentMessages = [];
                 
-                // Clear the chat display
+                // Just clear the chat display, don't show welcome screen
                 const chatMessages = document.querySelector('.chat-messages');
-                chatMessages.innerHTML = `
-                    <div class="welcome-screen">
-                        <svg class="claude-logo-large" viewBox="0 0 24 24" fill="var(--accent)">
-                            <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zM8 12a1 1 0 0 1 1-1h6a1 1 0 0 1 0 2H9a1 1 0 0 1-1-1zm0-4a1 1 0 0 1 1-1h6a1 1 0 0 1 0 2H9a1 1 0 0 1-1-1zm0 8a1 1 0 0 1 1-1h4a1 1 0 0 1 0 2H9a1 1 0 0 1-1-1z"/>
-                        </svg>
-                        <h1 class="welcome-title">How can I help with your budget?</h1>
-                        <p class="welcome-subtitle">I'm Budgie, your friendly AI budget companion with full access to your YNAB data</p>
-                        
-                        <div class="example-prompts">
-                            <div class="example-prompt" onclick="selectPrompt('💰 Fund upcoming bills')">
-                                <div class="example-prompt-title">💰 Fund upcoming bills</div>
-                                <div class="example-prompt-desc">Automatically allocate money to bills due this month</div>
-                            </div>
-                            <div class="example-prompt" onclick="selectPrompt('📊 Check category balances')">
-                                <div class="example-prompt-title">📊 Check category balances</div>
-                                <div class="example-prompt-desc">Review spending and available funds by category</div>
-                            </div>
-                            <div class="example-prompt" onclick="selectPrompt('🏷️ Show me all unapproved transactions and help me categorize them')">
-                                <div class="example-prompt-title">🏷️ Categorize transactions</div>
-                                <div class="example-prompt-desc">Review and approve recent uncategorized transactions</div>
-                            </div>
-                            <div class="example-prompt" onclick="selectPrompt('🎯 What can I afford this month?')">
-                                <div class="example-prompt-title">🎯 What can I afford?</div>
-                                <div class="example-prompt-desc">Check available funds for specific purchases or goals</div>
-                            </div>
-                            <div class="example-prompt" onclick="selectPrompt('🔄 Move money between categories to rebalance my budget')">
-                                <div class="example-prompt-title">🔄 Move money between categories</div>
-                                <div class="example-prompt-desc">Transfer funds to cover overspending or new purchases</div>
-                            </div>
-                            <div class="example-prompt" onclick="selectPrompt('📈 Show my spending trends and budget performance')">
-                                <div class="example-prompt-title">📈 Show spending trends</div>
-                                <div class="example-prompt-desc">Analyze spending patterns and budget performance</div>
-                            </div>
-                        </div>
-                    </div>
-                `;
+                chatMessages.innerHTML = '';
                 
                 // Delete the saved chat from localStorage
                 if (currentChatId && chatSessions[currentChatId]) {
@@ -2608,7 +2573,7 @@
                 // Update sidebar
                 updateChatSidebar();
                 
-                console.log('Chat cleared successfully');
+                console.log('Chat history cleared successfully');
             }
         }
 
