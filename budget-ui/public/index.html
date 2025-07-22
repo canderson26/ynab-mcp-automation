@@ -1027,6 +1027,28 @@
             30% { opacity: 1; }
         }
         
+        /* Flapping bird animation */
+        .flapping-bird {
+            display: inline-block;
+            animation: flap 0.8s ease-in-out infinite;
+            font-size: 16px;
+        }
+        
+        @keyframes flap {
+            0%, 100% { 
+                transform: scaleX(1) rotateZ(0deg);
+            }
+            25% { 
+                transform: scaleX(1.1) rotateZ(2deg);
+            }
+            50% { 
+                transform: scaleX(1.2) rotateZ(0deg);
+            }
+            75% { 
+                transform: scaleX(1.1) rotateZ(-2deg);
+            }
+        }
+        
         /* Chat History Page */
         .chat-history-page {
             display: none;
@@ -1652,7 +1674,7 @@
             
             const roleLabel = document.createElement('div');
             roleLabel.className = 'message-role';
-            roleLabel.textContent = 'Budgie';
+            roleLabel.textContent = '🐦';
             
             const message = document.createElement('div');
             message.className = 'message';
@@ -2371,7 +2393,7 @@
             
             const roleLabel = document.createElement('div');
             roleLabel.className = 'message-role';
-            roleLabel.textContent = 'Budgie';
+            roleLabel.textContent = '🐦';
             
             const typingMessage = document.createElement('div');
             typingMessage.className = 'typing-message';
@@ -2379,8 +2401,13 @@
             const typingContent = document.createElement('div');
             typingContent.className = 'typing-content';
             
+            const flappingBird = document.createElement('span');
+            flappingBird.className = 'flapping-bird';
+            flappingBird.textContent = '🐦';
+            
             const typingText = document.createElement('span');
-            typingText.textContent = 'Budgie is thinking';
+            typingText.textContent = 'thinking';
+            typingText.style.marginLeft = '8px';
             
             const typingDots = document.createElement('div');
             typingDots.className = 'typing-dots';
@@ -2391,6 +2418,7 @@
                 typingDots.appendChild(dot);
             }
             
+            typingContent.appendChild(flappingBird);
             typingContent.appendChild(typingText);
             typingContent.appendChild(typingDots);
             typingMessage.appendChild(typingContent);
