@@ -1708,13 +1708,20 @@
                                      response.includes('Ready to approve') ||
                                      response.includes('Need attention'));
             
+            const isAvailableFunds = response.includes('Available Funds') ||
+                                   response.includes('Ready to Assign') ||
+                                   response.includes('available to assign') ||
+                                   response.includes('can afford');
+            
             const isBudgetAnalysis = hasStructuredData || 
+                                   isAvailableFunds ||
                                    (response.includes('budget') && 
                                     (response.includes('over') || response.includes('under')));
             
             console.log('Is budget analysis:', isBudgetAnalysis);
             console.log('Has structured data:', hasStructuredData);
             console.log('Is transaction list:', isTransactionList);
+            console.log('Is available funds:', isAvailableFunds);
             console.log('Response contains ##:', response.includes('##'));
             
             // For structured content (cards, tables), show immediately for better UX
@@ -1722,8 +1729,8 @@
                 console.log('Using formatBudgetAnalysis for structured data');
                 formatBudgetAnalysis(response, messageContent);
                 finishResponse();
-            } else if (isTransactionList || response.includes('##')) {
-                console.log('Using formatStructuredResponse for transactions/sections');
+            } else if (isTransactionList || response.includes('##') || isAvailableFunds) {
+                console.log('Using formatStructuredResponse for transactions/sections/available funds');
                 formatStructuredResponse(response, messageContent);
                 finishResponse();
             } else {
@@ -1797,13 +1804,19 @@
                                      response.includes('Ready to approve') ||
                                      response.includes('Need attention'));
             
+            const isAvailableFunds = response.includes('Available Funds') ||
+                                   response.includes('Ready to Assign') ||
+                                   response.includes('available to assign') ||
+                                   response.includes('can afford');
+            
             const isBudgetAnalysis = hasStructuredData || 
+                                   isAvailableFunds ||
                                    (response.includes('budget') && 
                                     (response.includes('over') || response.includes('under')));
             
             if (isBudgetAnalysis && hasStructuredData) {
                 formatBudgetAnalysis(response, messageContent);
-            } else if (isTransactionList || response.includes('##')) {
+            } else if (isTransactionList || response.includes('##') || isAvailableFunds) {
                 formatStructuredResponse(response, messageContent);
             } else {
                 formatRegularResponse(response, messageContent);
