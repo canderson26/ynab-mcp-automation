@@ -520,6 +520,39 @@
         .amount-negative { color: var(--danger); }
         .amount-neutral { color: var(--text-primary); }
         
+        /* Target amount cards */
+        .target-card {
+            border-left: 4px solid var(--accent);
+        }
+        
+        .target-amount {
+            color: var(--accent);
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .category-section {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+        
+        .target-label {
+            color: var(--text-secondary);
+            font-size: 12px;
+            text-align: center;
+        }
+        
+        .summary-text {
+            font-size: 16px;
+            font-weight: 500;
+            margin: 20px 0;
+            padding: 12px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            border-left: 4px solid var(--accent);
+        }
+        
         .progress-bar {
             width: 100%;
             height: 4px;
@@ -1734,6 +1767,15 @@
                                    response.includes('Ready to Assign') ||
                                    response.includes('available to assign') ||
                                    response.includes('can afford');
+
+            const isTargetAmounts = (response.includes('budget targets') || 
+                                   response.includes('monthly targets') ||
+                                   response.includes('Target monthly amounts')) &&
+                                  response.includes('$') && 
+                                  (response.includes('Essential Bills') || 
+                                   response.includes('Personal Care') ||
+                                   response.includes('Savings') ||
+                                   response.includes('Discretionary'));
             
             const isBudgetAnalysis = hasStructuredData || 
                                    isAvailableFunds ||
@@ -1744,12 +1786,17 @@
             console.log('Has structured data:', hasStructuredData);
             console.log('Is transaction list:', isTransactionList);
             console.log('Is available funds:', isAvailableFunds);
+            console.log('Is target amounts:', isTargetAmounts);
             console.log('Response contains ##:', response.includes('##'));
             
             // For structured content (cards, tables), show immediately for better UX
             if (isBudgetAnalysis && hasStructuredData) {
                 console.log('Using formatBudgetAnalysis for structured data');
                 formatBudgetAnalysis(response, messageContent);
+                finishResponse();
+            } else if (isTargetAmounts) {
+                console.log('Using formatTargetAmounts for target amounts');
+                formatTargetAmounts(response, messageContent);
                 finishResponse();
             } else if (isTransactionList || response.includes('##') || isAvailableFunds) {
                 console.log('Using formatStructuredResponse for transactions/sections/available funds');
@@ -1829,6 +1876,15 @@
                                    response.includes('Ready to Assign') ||
                                    response.includes('available to assign') ||
                                    response.includes('can afford');
+
+            const isTargetAmounts = (response.includes('budget targets') || 
+                                   response.includes('monthly targets') ||
+                                   response.includes('Target monthly amounts')) &&
+                                  response.includes('$') && 
+                                  (response.includes('Essential Bills') || 
+                                   response.includes('Personal Care') ||
+                                   response.includes('Savings') ||
+                                   response.includes('Discretionary'));
             
             const isBudgetAnalysis = hasStructuredData || 
                                    isAvailableFunds ||
@@ -1837,6 +1893,8 @@
             
             if (isBudgetAnalysis && hasStructuredData) {
                 formatBudgetAnalysis(response, messageContent);
+            } else if (isTargetAmounts) {
+                formatTargetAmounts(response, messageContent);
             } else if (isTransactionList || response.includes('##') || isAvailableFunds) {
                 formatStructuredResponse(response, messageContent);
             } else {
@@ -2256,6 +2314,75 @@
                 const p = document.createElement('p');
                 p.innerHTML = currentParagraph.join('<br>');
                 messageContent.appendChild(p);
+            }
+        }
+        
+        function formatTargetAmounts(response, messageContent) {
+            console.log('Using formatTargetAmounts');
+            const lines = response.split('\n');
+            let i = 0;
+            let currentSection = '';
+            
+            while (i < lines.length) {
+                const line = lines[i].trim();
+                
+                if (!line) {
+                    i++;
+                    continue;
+                }
+                
+                if (line.endsWith(':') && !line.includes('$')) {
+                    // This is a section header (Essential Bills & Fixed Expenses:, Personal Care:, etc.)
+                    currentSection = line;
+                    const headerDiv = document.createElement('div');
+                    headerDiv.className = 'analysis-header';
+                    headerDiv.innerHTML = line.replace('**', '').replace('**', '');
+                    messageContent.appendChild(headerDiv);
+                } else if (line.startsWith('-') && line.includes('$')) {
+                    // This is a target amount line: - Groceries: $1,200
+                    const match = line.match(/^-\s*(.*?):\s*\$([0-9,\.]+)/);
+                    if (match) {
+                        const categoryName = match[1];
+                        const targetAmount = match[2];
+                        
+                        // Create a target amount card
+                        const targetCard = document.createElement('div');
+                        targetCard.className = 'budget-card target-card';
+                        
+                        targetCard.innerHTML = `
+                            <div class="budget-category-header">
+                                <div class="category-info">
+                                    <div class="category-name">${categoryName}</div>
+                                    <div class="category-section">${currentSection.replace(':', '')}</div>
+                                </div>
+                                <div class="category-amount target-amount">$${targetAmount}</div>
+                            </div>
+                            <div class="budget-details">
+                                <div class="target-label">Monthly Target</div>
+                            </div>
+                        `;
+                        
+                        messageContent.appendChild(targetCard);
+                    }
+                } else if (!line.startsWith('-') && line.includes('$') && line.includes('monthly')) {
+                    // Handle summary lines like "Total monthly targets: $16,904.22"
+                    const p = document.createElement('p');
+                    p.className = 'summary-text';
+                    p.innerHTML = line
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\*(.*?)\*/g, '<em>$1</em>');
+                    messageContent.appendChild(p);
+                } else if (line.length > 0 && !line.startsWith('-')) {
+                    // Regular text lines
+                    const p = document.createElement('p');
+                    p.innerHTML = line
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                        .replace(/`(.*?)`/g, '<code>$1</code>');
+                    messageContent.appendChild(p);
+                }
+                
+                i++;
             }
         }
         
