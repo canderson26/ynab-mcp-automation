@@ -2242,7 +2242,18 @@
         }
 
         function formatRegularResponse(response, messageContent) {
-            const lines = response.split('\n');
+            // First, let's break up walls of text by adding line breaks around sections
+            let formattedResponse = response
+                // Add line breaks before common section patterns
+                .replace(/(Current situation:|Budget constraints:|Better approach:|To afford|While mathematically possible)/g, '\n\n$1')
+                // Add line breaks before bullet points that aren't already on new lines
+                .replace(/([.!]) - /g, '$1\n- ')
+                // Add line breaks before numbered lists
+                .replace(/([.!]) (\d+\.)/g, '$1\n$2')
+                // Clean up multiple consecutive line breaks
+                .replace(/\n\n+/g, '\n\n');
+            
+            const lines = formattedResponse.split('\n');
             let currentParagraph = [];
             
             lines.forEach(line => {
@@ -2256,8 +2267,8 @@
                         messageContent.appendChild(p);
                         currentParagraph = [];
                     }
-                } else if (line.startsWith('•') || line.startsWith('-')) {
-                    // End current paragraph and add bullet point
+                } else if (line.startsWith('•') || line.startsWith('-') || line.match(/^\d+\./)) {
+                    // End current paragraph and add bullet/numbered point
                     if (currentParagraph.length > 0) {
                         const p = document.createElement('p');
                         p.innerHTML = currentParagraph.join('<br>');
@@ -2267,9 +2278,13 @@
                     
                     const bulletDiv = document.createElement('div');
                     bulletDiv.className = 'insight-item';
-                    bulletDiv.innerHTML = line.replace(/^[•-]\s*/, '• ');
+                    bulletDiv.innerHTML = line
+                        .replace(/^[•-]\s*/, '• ')
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                        .replace(/`(.*?)`/g, '<code>$1</code>');
                     messageContent.appendChild(bulletDiv);
-                } else if (line.endsWith(':') && line.length < 50) {
+                } else if (line.endsWith(':') && line.length < 60) {
                     // Looks like a header
                     if (currentParagraph.length > 0) {
                         const p = document.createElement('p');
@@ -2280,7 +2295,7 @@
                     
                     const headerDiv = document.createElement('div');
                     headerDiv.className = 'analysis-header';
-                    headerDiv.innerHTML = line;
+                    headerDiv.innerHTML = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
                     messageContent.appendChild(headerDiv);
                 } else {
                     // Regular line - add to current paragraph
