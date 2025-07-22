@@ -202,7 +202,7 @@ async function handleToolCall(toolName, args) {
       };
       
     case 'assignToCategory':
-      const assignment = await ynab.assignToCategory(args.categoryId, args.amount);
+      const assignment = await ynab.assignFunds(args.categoryId, args.amount);
       return {
         content: [{
           type: 'text',
