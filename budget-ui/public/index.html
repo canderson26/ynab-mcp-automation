@@ -269,10 +269,12 @@
         }
         
         .claude-logo-large {
-            width: 64px;
-            height: 64px;
+            font-size: 64px;
             margin-bottom: 24px;
             opacity: 0.8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         .welcome-title {
@@ -1250,9 +1252,7 @@
             <div class="chat-messages">
                 <!-- Welcome screen - shown when no messages -->
                 <div class="welcome-screen">
-                    <svg class="claude-logo-large" viewBox="0 0 24 24" fill="var(--accent)">
-                        <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zM8 12a1 1 0 0 1 1-1h6a1 1 0 0 1 0 2H9a1 1 0 0 1-1-1zm0-4a1 1 0 0 1 1-1h6a1 1 0 0 1 0 2H9a1 1 0 0 1-1-1zm0 8a1 1 0 0 1 1-1h4a1 1 0 0 1 0 2H9a1 1 0 0 1-1-1z"/>
-                    </svg>
+                    <div class="claude-logo-large">🐦</div>
                     <h1 class="welcome-title">How can I help with your budget?</h1>
                     <p class="welcome-subtitle">I'm Budgie, your friendly AI budget companion with full access to your YNAB data</p>
                     
@@ -1536,9 +1536,7 @@
             const chatMessages = document.querySelector('.chat-messages');
             chatMessages.innerHTML = `
                 <div class="welcome-screen">
-                    <svg class="claude-logo-large" viewBox="0 0 24 24" fill="var(--accent)">
-                        <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zM8 12a1 1 0 0 1 1-1h6a1 1 0 0 1 0 2H9a1 1 0 0 1-1-1zm0-4a1 1 0 0 1 1-1h6a1 1 0 0 1 0 2H9a1 1 0 0 1-1-1zm0 8a1 1 0 0 1 1-1h4a1 1 0 0 1 0 2H9a1 1 0 0 1-1-1z"/>
-                    </svg>
+                    <div class="claude-logo-large">🐦</div>
                     <h1 class="welcome-title">How can I help with your budget?</h1>
                     <p class="welcome-subtitle">I'm Budgie, your friendly AI budget companion with full access to your YNAB data</p>
                     
@@ -1765,8 +1763,7 @@
                 
                 currentWordIndex++;
                 
-                // Scroll to bottom during typing
-                scrollToBottom();
+                // Don't auto-scroll - let user control scrolling
                 
                 // Delay before next word (shorter for better flow)
                 const delay = word.length > 8 ? 80 : 50; // Longer words get slightly longer pause
@@ -1812,9 +1809,8 @@
         }
         
         function finishResponse() {
-            // Save chat and scroll to bottom when response is complete
+            // Save chat when response is complete (no auto-scroll)
             saveCurrentChat();
-            scrollToBottom();
         }
         
         function formatBudgetAnalysis(response, messageContent) {
