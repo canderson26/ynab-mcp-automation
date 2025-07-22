@@ -1326,7 +1326,7 @@
                 <div class="input-wrapper">
                     <textarea class="input-field" placeholder="Ask about your budget..." rows="1"></textarea>
                     <div class="input-actions">
-                        <button class="clear-chat-btn" onclick="clearCurrentChat()" title="Clear chat">
+                        <button class="clear-chat-btn" onclick="clearCurrentChat()" title="Clear all chat history">
                             <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M3 6h18"></path>
                                 <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
@@ -2549,9 +2549,9 @@
             }
         }
         
-        // Clear current chat function
+        // Clear all chat history function
         function clearCurrentChat() {
-            if (confirm('Are you sure you want to clear this chat history? This action cannot be undone.')) {
+            if (confirm('Are you sure you want to clear ALL chat history? This will delete all conversations and cannot be undone.')) {
                 // Clear current messages
                 currentMessages = [];
                 
@@ -2566,11 +2566,9 @@
                     welcomeScreen.style.display = 'none';
                 }
                 
-                // Delete the saved chat from localStorage
-                if (currentChatId && chatSessions[currentChatId]) {
-                    delete chatSessions[currentChatId];
-                    localStorage.setItem('budget-assistant-chats', JSON.stringify(chatSessions));
-                }
+                // Delete ALL saved chats from localStorage
+                chatSessions = {};
+                localStorage.setItem('budget-assistant-chats', JSON.stringify(chatSessions));
                 
                 // Generate a new chat ID for the next conversation
                 currentChatId = generateChatId();
@@ -2586,7 +2584,7 @@
                 // Update sidebar
                 updateChatSidebar();
                 
-                console.log('Chat history cleared successfully');
+                console.log('All chat history cleared successfully');
             }
         }
 
