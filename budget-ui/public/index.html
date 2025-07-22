@@ -1759,12 +1759,16 @@
 
             const isTargetAmounts = (response.includes('budget targets') || 
                                    response.includes('monthly targets') ||
-                                   response.includes('Target monthly amounts')) &&
+                                   response.includes('Target monthly amounts') ||
+                                   response.includes('Major Categories')) &&
                                   response.includes('$') && 
                                   (response.includes('Essential Bills') || 
                                    response.includes('Personal Care') ||
                                    response.includes('Savings') ||
-                                   response.includes('Discretionary'));
+                                   response.includes('Discretionary') ||
+                                   response.includes('Housing & Debts') ||
+                                   response.includes('Regular Bills') ||
+                                   response.includes('Savings & Investments'));
             
             const isBudgetAnalysis = hasStructuredData || 
                                    isAvailableFunds ||
@@ -1868,12 +1872,16 @@
 
             const isTargetAmounts = (response.includes('budget targets') || 
                                    response.includes('monthly targets') ||
-                                   response.includes('Target monthly amounts')) &&
+                                   response.includes('Target monthly amounts') ||
+                                   response.includes('Major Categories')) &&
                                   response.includes('$') && 
                                   (response.includes('Essential Bills') || 
                                    response.includes('Personal Care') ||
                                    response.includes('Savings') ||
-                                   response.includes('Discretionary'));
+                                   response.includes('Discretionary') ||
+                                   response.includes('Housing & Debts') ||
+                                   response.includes('Regular Bills') ||
+                                   response.includes('Savings & Investments'));
             
             const isBudgetAnalysis = hasStructuredData || 
                                    isAvailableFunds ||
@@ -2321,7 +2329,14 @@
                 
                 if (line.startsWith('##') || line.startsWith('###')) {
                     // Markdown headers: ## Monthly Budget Targets or ### Fixed Bills & Obligations
-                    const headerText = line.replace(/^#{2,3}\s*/, '').trim();
+                    const headerText = line.replace(/^#{2,3}\s*/, '').trim().replace(/\*\*/g, '');
+                    const headerDiv = document.createElement('div');
+                    headerDiv.className = 'analysis-header';
+                    headerDiv.innerHTML = headerText;
+                    messageContent.appendChild(headerDiv);
+                } else if (line.match(/^\*\*.*:\*\*$/)) {
+                    // Bold section headers: **Savings & Investments:**
+                    const headerText = line.replace(/^\*\*/, '').replace(/:\*\*$/, '').trim();
                     const headerDiv = document.createElement('div');
                     headerDiv.className = 'analysis-header';
                     headerDiv.innerHTML = headerText;
