@@ -1419,14 +1419,14 @@
                 });
             }
             
-            // Add to DOM
-            addClaudeResponseToDOM(response);
+            // Add to DOM with typewriter effect
+            addClaudeResponseToDOM(response, true);
             
-            // Save chat
-            saveCurrentChat();
+            // Save chat (will be called after typing animation completes)
+            // saveCurrentChat();
             
-            // Scroll to bottom with smooth scrolling
-            scrollToBottom();
+            // Scroll to bottom with smooth scrolling (handled during typing animation)
+            // scrollToBottom();
         }
         
         function updateConnectionStatus(status) {
@@ -1613,7 +1613,7 @@
                 if (message.role === 'user') {
                     addUserMessageToDOM(message.content);
                 } else {
-                    addClaudeResponseToDOM(message.content);
+                    addClaudeResponseToDOM(message.content, false); // No typewriter for saved chats
                 }
             });
             
@@ -1653,7 +1653,7 @@
             chatMessages.appendChild(messageGroup);
         }
         
-        function addClaudeResponseToDOM(response) {
+        function addClaudeResponseToDOM(response, useTypewriter = false) {
             const chatMessages = document.querySelector('.chat-messages');
             
             const messageGroup = document.createElement('div');
@@ -1669,6 +1669,21 @@
             const messageContent = document.createElement('div');
             messageContent.className = 'message-content';
             
+            message.appendChild(messageContent);
+            messageGroup.appendChild(roleLabel);
+            messageGroup.appendChild(message);
+            chatMessages.appendChild(messageGroup);
+            
+            if (useTypewriter) {
+                // Start typewriter effect
+                startTypewriterEffect(response, messageContent);
+            } else {
+                // Immediate display (for loading saved chats)
+                renderResponseContent(response, messageContent);
+            }
+        }
+        
+        function startTypewriterEffect(response, messageContent) {
             // Debug logging
             console.log('Response length:', response.length, 'chars');
             console.log('Response preview:', response.substring(0, 200) + '...');
@@ -1697,22 +1712,103 @@
             console.log('Is transaction list:', isTransactionList);
             console.log('Response contains ##:', response.includes('##'));
             
+            // For structured content (cards, tables), show immediately for better UX
             if (isBudgetAnalysis && hasStructuredData) {
                 console.log('Using formatBudgetAnalysis for structured data');
                 formatBudgetAnalysis(response, messageContent);
+                finishResponse();
             } else if (isTransactionList || response.includes('##')) {
                 console.log('Using formatStructuredResponse for transactions/sections');
                 formatStructuredResponse(response, messageContent);
+                finishResponse();
             } else {
-                console.log('Using regular formatting');
-                formatRegularResponse(response, messageContent);
+                console.log('Using typewriter effect for regular response');
+                // Use typewriter effect for regular text responses
+                typeWriterText(response, messageContent, finishResponse);
+            }
+        }
+        
+        function typeWriterText(text, container, callback) {
+            const words = text.split(' ');
+            let currentWordIndex = 0;
+            const p = document.createElement('p');
+            container.appendChild(p);
+            
+            function typeNextWord() {
+                if (currentWordIndex >= words.length) {
+                    if (callback) callback();
+                    return;
+                }
+                
+                const word = words[currentWordIndex];
+                const wordSpan = document.createElement('span');
+                wordSpan.style.opacity = '0';
+                wordSpan.style.transition = 'opacity 0.1s ease';
+                
+                // Process markdown formatting
+                wordSpan.innerHTML = word
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                    .replace(/`(.*?)`/g, '<code>$1</code>');
+                
+                p.appendChild(wordSpan);
+                
+                // Add space after word (except for last word)
+                if (currentWordIndex < words.length - 1) {
+                    p.appendChild(document.createTextNode(' '));
+                }
+                
+                // Fade in the word
+                setTimeout(() => {
+                    wordSpan.style.opacity = '1';
+                }, 10);
+                
+                currentWordIndex++;
+                
+                // Scroll to bottom during typing
+                scrollToBottom();
+                
+                // Delay before next word (shorter for better flow)
+                const delay = word.length > 8 ? 80 : 50; // Longer words get slightly longer pause
+                setTimeout(typeNextWord, delay);
             }
             
-            message.appendChild(messageContent);
-            messageGroup.appendChild(roleLabel);
-            messageGroup.appendChild(message);
+            typeNextWord();
+        }
+        
+        function renderResponseContent(response, messageContent) {
+            // More flexible detection for structured responses
+            const hasStructuredData = response.includes('vs budgeted') || 
+                                     response.includes('vs target') || 
+                                     response.includes('spent $') ||
+                                     response.includes('Budgeted:') || 
+                                     response.includes('Target:');
             
-            chatMessages.appendChild(messageGroup);
+            const isTransactionList = response.includes('transactions') && 
+                                    (response.includes('Auto-Approve') || 
+                                     response.includes('unapproved') ||
+                                     response.includes('categorize') ||
+                                     response.includes('approval') ||
+                                     response.includes('Ready to approve') ||
+                                     response.includes('Need attention'));
+            
+            const isBudgetAnalysis = hasStructuredData || 
+                                   (response.includes('budget') && 
+                                    (response.includes('over') || response.includes('under')));
+            
+            if (isBudgetAnalysis && hasStructuredData) {
+                formatBudgetAnalysis(response, messageContent);
+            } else if (isTransactionList || response.includes('##')) {
+                formatStructuredResponse(response, messageContent);
+            } else {
+                formatRegularResponse(response, messageContent);
+            }
+        }
+        
+        function finishResponse() {
+            // Save chat and scroll to bottom when response is complete
+            saveCurrentChat();
+            scrollToBottom();
         }
         
         function formatBudgetAnalysis(response, messageContent) {
