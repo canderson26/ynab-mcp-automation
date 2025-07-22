@@ -531,17 +531,6 @@
             font-weight: 600;
         }
         
-        .category-section {
-            font-size: 12px;
-            color: var(--text-secondary);
-            margin-top: 4px;
-        }
-        
-        .target-label {
-            color: var(--text-secondary);
-            font-size: 12px;
-            text-align: center;
-        }
         
         .summary-text {
             font-size: 16px;
@@ -2321,7 +2310,6 @@
             console.log('Using formatTargetAmounts');
             const lines = response.split('\n');
             let i = 0;
-            let currentSection = '';
             
             while (i < lines.length) {
                 const line = lines[i].trim();
@@ -2331,21 +2319,27 @@
                     continue;
                 }
                 
-                if (line.endsWith(':') && !line.includes('$')) {
-                    // This is a section header (Essential Bills & Fixed Expenses:, Personal Care:, etc.)
-                    currentSection = line;
+                if (line.startsWith('##') || line.startsWith('###')) {
+                    // Markdown headers: ## Monthly Budget Targets or ### Fixed Bills & Obligations
+                    const headerText = line.replace(/^#{2,3}\s*/, '').trim();
                     const headerDiv = document.createElement('div');
                     headerDiv.className = 'analysis-header';
-                    headerDiv.innerHTML = line.replace('**', '').replace('**', '');
+                    headerDiv.innerHTML = headerText;
                     messageContent.appendChild(headerDiv);
                 } else if (line.startsWith('-') && line.includes('$')) {
-                    // This is a target amount line: - Groceries: $1,200
-                    const match = line.match(/^-\s*(.*?):\s*\$([0-9,\.]+)/);
+                    // Target amount line: - **HOA**: $108 (quarterly $324 ÷ 3)
+                    // Extract just category name and amount
+                    let match = line.match(/^-\s*\*\*(.*?)\*\*:\s*\$([0-9,\.]+)/);
+                    if (!match) {
+                        // Try without bold formatting: - Groceries: $1,200
+                        match = line.match(/^-\s*(.*?):\s*\$([0-9,\.]+)/);
+                    }
+                    
                     if (match) {
                         const categoryName = match[1];
                         const targetAmount = match[2];
                         
-                        // Create a target amount card
+                        // Create simplified target amount card - just category and amount
                         const targetCard = document.createElement('div');
                         targetCard.className = 'budget-card target-card';
                         
@@ -2353,18 +2347,14 @@
                             <div class="budget-category-header">
                                 <div class="category-info">
                                     <div class="category-name">${categoryName}</div>
-                                    <div class="category-section">${currentSection.replace(':', '')}</div>
                                 </div>
                                 <div class="category-amount target-amount">$${targetAmount}</div>
-                            </div>
-                            <div class="budget-details">
-                                <div class="target-label">Monthly Target</div>
                             </div>
                         `;
                         
                         messageContent.appendChild(targetCard);
                     }
-                } else if (!line.startsWith('-') && line.includes('$') && line.includes('monthly')) {
+                } else if (line.includes('Total') && line.includes('$') && (line.includes('monthly') || line.includes('targets'))) {
                     // Handle summary lines like "Total monthly targets: $16,904.22"
                     const p = document.createElement('p');
                     p.className = 'summary-text';
@@ -2372,8 +2362,8 @@
                         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                         .replace(/\*(.*?)\*/g, '<em>$1</em>');
                     messageContent.appendChild(p);
-                } else if (line.length > 0 && !line.startsWith('-')) {
-                    // Regular text lines
+                } else if (line.length > 0 && !line.startsWith('-') && !line.startsWith('#')) {
+                    // Regular text lines (like intro text)
                     const p = document.createElement('p');
                     p.innerHTML = line
                         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
