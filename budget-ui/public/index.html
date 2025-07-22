@@ -1,0 +1,1759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --bg-primary: #212121;
+            --bg-secondary: #2d2d2d;
+            --bg-hover: #3d3d3d;
+            --border: #3d3d3d;
+            --text-primary: #e3e3e3;
+            --text-secondary: #999;
+            --accent: #d09966;
+            --sidebar-width: 260px;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+            font-size: 14px;
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--bg-secondary);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        
+        .resize-handle {
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background: var(--border);
+            cursor: ew-resize;
+        }
+        
+        .sidebar-header {
+            padding: 12px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 12px;
+            font-weight: 600;
+            font-size: 16px;
+            color: var(--accent);
+        }
+        
+        .chat-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 8px 8px;
+        }
+        
+        .today-section {
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 500;
+            padding: 8px 12px 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .chat-item {
+            padding: 8px 12px;
+            margin-bottom: 1px;
+            border-radius: 6px;
+            cursor: pointer;
+            color: var(--text-primary);
+            display: block;
+            text-decoration: none;
+            transition: background 0.1s;
+            font-size: 13px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .chat-item:hover {
+            background: var(--bg-hover);
+        }
+        
+        .chat-item.active {
+            background: var(--bg-hover);
+        }
+        
+        .new-chat-btn {
+            margin: 0 8px 8px;
+            padding: 10px;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.1s;
+        }
+        
+        .new-chat-btn:hover {
+            background: var(--bg-hover);
+        }
+        
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        
+        /* Chat View */
+        .chat-view {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0 32px;
+            overflow-y: auto;
+        }
+        
+        .chat-messages {
+            width: 100%;
+            max-width: 768px;
+            padding: 80px 0 120px;
+        }
+        
+        .welcome-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            text-align: center;
+            padding: 32px;
+        }
+        
+        .claude-logo-large {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 24px;
+            opacity: 0.8;
+        }
+        
+        .welcome-title {
+            font-size: 32px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .welcome-subtitle {
+            color: var(--text-secondary);
+            font-size: 16px;
+            margin-bottom: 32px;
+        }
+        
+        .example-prompts {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            width: 100%;
+            max-width: 600px;
+        }
+        
+        .example-prompt {
+            padding: 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.1s;
+        }
+        
+        .example-prompt:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent);
+        }
+        
+        .example-prompt-title {
+            font-weight: 500;
+            margin-bottom: 4px;
+            color: var(--text-primary);
+        }
+        
+        .example-prompt-desc {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        
+        /* Messages */
+        .message-group {
+            padding: 24px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .message-group:last-child {
+            border-bottom: none;
+        }
+        
+        .message {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 4px;
+        }
+        
+        .message-role {
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .message-content {
+            flex: 1;
+            line-height: 1.6;
+            max-width: 100%;
+            overflow: hidden;
+        }
+        
+        /* User messages on the right */
+        .message-group.user {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+        
+        .message-group.user .message-role {
+            text-align: right;
+        }
+        
+        .message-group.user .message {
+            flex-direction: row-reverse;
+            max-width: 75%;
+        }
+        
+        .message-group.user .message-content {
+            background: var(--accent);
+            color: var(--bg-primary);
+            padding: 12px 16px;
+            border-radius: 18px 18px 4px 18px;
+            max-width: 100%;
+        }
+        
+        .message-group.user .message-content p {
+            color: var(--bg-primary);
+            margin-bottom: 0;
+        }
+        
+        /* Assistant messages on the left */
+        .message-group.assistant .message {
+            max-width: 100%;
+        }
+        
+        .message-group.assistant .message-content {
+            background: transparent;
+        }
+        
+        .message-content p {
+            margin-bottom: 16px;
+        }
+        
+        .message-content p:last-child {
+            margin-bottom: 0;
+        }
+        
+        .message-content pre {
+            background: var(--bg-secondary);
+            border-radius: 6px;
+            padding: 16px;
+            margin: 16px 0;
+            overflow-x: auto;
+            font-size: 13px;
+        }
+        
+        .message-content code {
+            background: var(--bg-secondary);
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-size: 13px;
+        }
+        
+        /* Tool usage indicators */
+        .tool-usage {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin: 16px 0;
+            font-size: 13px;
+            color: var(--text-secondary);
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .tool-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+        
+        .tool-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+        }
+        
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent);
+        }
+        
+        .status-dot.loading {
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 1; }
+        }
+        
+        /* Budget data cards */
+        .budget-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            margin: 16px 0;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .budget-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        
+        .budget-card-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .budget-card-status {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        
+        .budget-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+        }
+        
+        .budget-row:last-child {
+            border-bottom: none;
+        }
+        
+        .budget-label {
+            color: var(--text-secondary);
+        }
+        
+        .budget-amount {
+            font-weight: 500;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+        
+        .amount-positive { color: #10b981; }
+        .amount-negative { color: #ef4444; }
+        .amount-neutral { color: var(--text-primary); }
+        
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            margin: 8px 0;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: var(--accent);
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+        
+        /* Transaction list */
+        .transaction-list {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin: 16px 0;
+            overflow: hidden;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .transaction-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+        
+        .transaction-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+        }
+        
+        .transaction-item:last-child {
+            border-bottom: none;
+        }
+        
+        .transaction-details {
+            flex: 1;
+        }
+        
+        .transaction-merchant {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+        
+        .transaction-date {
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+        
+        .transaction-amount {
+            font-family: 'SF Mono', Monaco, monospace;
+            font-weight: 500;
+        }
+        
+        /* Enhanced budget analysis formatting */
+        .analysis-section {
+            margin: 16px 0;
+        }
+        
+        .analysis-section:first-child {
+            margin-top: 0;
+        }
+        
+        .analysis-header {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 20px 0 12px 0;
+            padding: 8px 0;
+            border-bottom: 2px solid var(--border);
+        }
+        
+        .analysis-header:first-child {
+            margin-top: 0;
+        }
+        
+        .budget-line {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 8px 12px;
+            margin: 4px 0;
+            background: var(--bg-secondary);
+            border-radius: 6px;
+            border-left: 3px solid var(--border);
+        }
+        
+        .category-name {
+            font-weight: 500;
+            color: var(--text-primary);
+            flex: 1;
+        }
+        
+        .amount {
+            font-family: 'SF Mono', Monaco, monospace;
+            font-weight: 600;
+            margin-left: 12px;
+        }
+        
+        .amount:contains("-"), .amount[data-negative] {
+            color: #ef4444;
+        }
+        
+        .budget-detail {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin: 4px 0 4px 16px;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+        
+        .insight-item {
+            padding: 6px 0;
+            color: var(--text-primary);
+            line-height: 1.5;
+        }
+        
+        .insight-item:before {
+            color: var(--accent);
+            margin-right: 8px;
+        }
+        
+        /* Status indicators */
+        .connection-status {
+            position: absolute;
+            top: 16px;
+            right: 24px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            background: var(--bg-secondary);
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+        }
+        
+        .connection-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+        }
+        
+        /* Sidebar Actions */
+        .sidebar-actions {
+            border-top: 1px solid var(--border);
+            padding: 16px 12px 12px;
+        }
+        
+        .sidebar-actions-header {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .sidebar-action-btn {
+            width: 100%;
+            padding: 8px 10px;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+            transition: all 0.2s;
+            text-align: left;
+        }
+        
+        .sidebar-action-btn:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent);
+        }
+        
+        .sidebar-action-btn:last-child {
+            margin-bottom: 0;
+        }
+        
+        .sidebar-action-icon {
+            font-size: 14px;
+            width: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        
+        .sidebar-action-text {
+            flex: 1;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        /* Input Area */
+        .input-area {
+            position: fixed;
+            bottom: 0;
+            left: var(--sidebar-width);
+            right: 0;
+            background: linear-gradient(to top, var(--bg-primary) 0%, var(--bg-primary) 70%, transparent 100%);
+            padding: 20px 32px 0px;
+            z-index: 10;
+        }
+        
+        .input-container {
+            max-width: 742px;
+            width: 100%;
+            margin: 0 auto 0 calc(50% - 375px);
+            box-sizing: border-box;
+        }
+        
+        .input-wrapper {
+            position: relative;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            overflow: hidden;
+            transition: all 0.2s;
+            box-sizing: border-box;
+        }
+        
+        .input-wrapper:focus-within {
+            border-color: #525252;
+            box-shadow: 0 0 0 1px rgba(82, 82, 82, 0.3);
+        }
+        
+        .input-field {
+            width: 100%;
+            min-height: 52px;
+            max-height: 200px;
+            padding: 14px 50px 14px 20px;
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-size: 15px;
+            line-height: 1.5;
+            resize: none;
+            outline: none;
+            font-family: inherit;
+            box-sizing: border-box;
+        }
+        
+        .input-field::placeholder {
+            color: #8b8b8b;
+        }
+        
+        .input-actions {
+            position: absolute;
+            right: 12px;
+            bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .attach-btn {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: none;
+            border-radius: 8px;
+            color: #8b8b8b;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        
+        .attach-btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+        }
+        
+        .send-btn {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--text-primary);
+            border: none;
+            border-radius: 8px;
+            color: var(--bg-primary);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        
+        .send-btn:disabled {
+            background: #4a4a4a;
+            color: #8b8b8b;
+            cursor: not-allowed;
+        }
+        
+        .send-btn:not(:disabled):hover {
+            background: #f5f5f5;
+        }
+        
+        .input-footer {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 12px;
+            font-size: 12px;
+            color: #8b8b8b;
+            gap: 16px;
+        }
+        
+        .input-footer span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        /* Typing indicator */
+        .typing-indicator {
+            padding: 24px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .typing-message {
+            display: flex;
+            gap: 16px;
+        }
+        
+        .typing-content {
+            flex: 1;
+            line-height: 1.6;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+        
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+        
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--accent);
+            border-radius: 50%;
+            animation: typing-bounce 1.4s infinite;
+        }
+        
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        
+        @keyframes typing-bounce {
+            0%, 60%, 100% {
+                transform: translateY(0);
+                opacity: 0.4;
+            }
+            30% {
+                transform: translateY(-8px);
+                opacity: 1;
+            }
+        }
+
+        /* Icons */
+        .icon {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+        
+        .icon-sm {
+            width: 16px;
+            height: 16px;
+        }
+        
+        /* Analysis formatting */
+        .analysis-header {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 24px 0 12px 0;
+            color: var(--text-primary);
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .analysis-header:first-child {
+            margin-top: 8px;
+        }
+        
+        .insight-item {
+            margin: 8px 0;
+            padding-left: 16px;
+            color: var(--text-primary);
+            line-height: 1.5;
+        }
+        
+        .insight-item:before {
+            content: '•';
+            color: var(--accent);
+            margin-right: 8px;
+            margin-left: -16px;
+        }
+        
+        /* Typing indicator */
+        .typing-indicator {
+            padding: 24px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .typing-message {
+            display: flex;
+            gap: 16px;
+        }
+        
+        .typing-content {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 18px 18px 18px 4px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+        
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent);
+            opacity: 0.4;
+            animation: typing 1.4s infinite;
+        }
+        
+        .typing-dot:nth-child(1) { animation-delay: 0s; }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        
+        @keyframes typing {
+            0%, 60%, 100% { opacity: 0.4; }
+            30% { opacity: 1; }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #555;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="resize-handle"></div>
+        
+        <div class="sidebar-header">
+            <div class="logo">
+                <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zM8 12a1 1 0 0 1 1-1h6a1 1 0 0 1 0 2H9a1 1 0 0 1-1-1zm0-4a1 1 0 0 1 1-1h6a1 1 0 0 1 0 2H9a1 1 0 0 1-1-1zm0 8a1 1 0 0 1 1-1h4a1 1 0 0 1 0 2H9a1 1 0 0 1-1-1z"/>
+                </svg>
+                Budget Assistant
+            </div>
+        </div>
+        
+        <div class="new-chat-btn" onclick="createNewChat()">
+            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 5v14m7-7H5"/>
+            </svg>
+            New chat
+        </div>
+        
+        <div class="today-section" id="chat-list-header" style="display: none;">Today</div>
+        
+        <div class="chat-list" id="chat-list">
+            <!-- Chat history will be populated dynamically -->
+        </div>
+        
+        <!-- Quick Actions Section -->
+        <div class="sidebar-actions">
+            <div class="sidebar-actions-header">
+                ⚡ Quick Actions
+            </div>
+            <button class="sidebar-action-btn" onclick="runAction('Fund all my upcoming bills based on due dates')">
+                <div class="sidebar-action-icon">💰</div>
+                <div class="sidebar-action-text">Fund Bills</div>
+            </button>
+            <button class="sidebar-action-btn" onclick="runAction('Show me all unapproved transactions and help me categorize them')">
+                <div class="sidebar-action-icon">🏷️</div>
+                <div class="sidebar-action-text">Categorize Transactions</div>
+            </button>
+            <button class="sidebar-action-btn" onclick="runAction('Analyze my spending patterns for this month and identify areas where I\'m over or under budget')">
+                <div class="sidebar-action-icon">📊</div>
+                <div class="sidebar-action-text">Analyze Spending</div>
+            </button>
+            <button class="sidebar-action-btn" onclick="runAction('Show me how much I can safely spend on vacation this month')">
+                <div class="sidebar-action-icon">🎯</div>
+                <div class="sidebar-action-text">What Can I Afford?</div>
+            </button>
+            <button class="sidebar-action-btn" onclick="runAction('Move money from dining out to groceries to cover the overage')">
+                <div class="sidebar-action-icon">🔄</div>
+                <div class="sidebar-action-text">Rebalance Categories</div>
+            </button>
+        </div>
+    </div>
+    
+    <div class="main-content">
+        <div class="connection-status">
+            <div class="connection-dot"></div>
+            <span>Connected to YNAB</span>
+        </div>
+        
+        <div class="chat-view">
+            <div class="chat-messages">
+                <!-- Welcome screen - shown when no messages -->
+                <div class="welcome-screen">
+                    <svg class="claude-logo-large" viewBox="0 0 24 24" fill="var(--accent)">
+                        <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zM8 12a1 1 0 0 1 1-1h6a1 1 0 0 1 0 2H9a1 1 0 0 1-1-1zm0-4a1 1 0 0 1 1-1h6a1 1 0 0 1 0 2H9a1 1 0 0 1-1-1zm0 8a1 1 0 0 1 1-1h4a1 1 0 0 1 0 2H9a1 1 0 0 1-1-1z"/>
+                    </svg>
+                    <h1 class="welcome-title">How can I help with your budget?</h1>
+                    <p class="welcome-subtitle">I'm your personal YNAB budget assistant with full access to your financial data</p>
+                    
+                    <div class="example-prompts">
+                        <div class="example-prompt" onclick="selectPrompt('💰 Fund upcoming bills')">
+                            <div class="example-prompt-title">💰 Fund upcoming bills</div>
+                            <div class="example-prompt-desc">Automatically allocate money to bills due this month</div>
+                        </div>
+                        <div class="example-prompt" onclick="selectPrompt('📊 Check category balances')">
+                            <div class="example-prompt-title">📊 Check category balances</div>
+                            <div class="example-prompt-desc">Review spending and available funds by category</div>
+                        </div>
+                        <div class="example-prompt" onclick="selectPrompt('🏷️ Show me all unapproved transactions and help me categorize them')">
+                            <div class="example-prompt-title">🏷️ Categorize transactions</div>
+                            <div class="example-prompt-desc">Review and approve recent uncategorized transactions</div>
+                        </div>
+                        <div class="example-prompt" onclick="selectPrompt('🎯 What can I afford this month?')">
+                            <div class="example-prompt-title">🎯 What can I afford?</div>
+                            <div class="example-prompt-desc">Check available funds for specific purchases or goals</div>
+                        </div>
+                        <div class="example-prompt" onclick="selectPrompt('🔄 Move money between categories to rebalance my budget')">
+                            <div class="example-prompt-title">🔄 Move money between categories</div>
+                            <div class="example-prompt-desc">Transfer funds to cover overspending or new purchases</div>
+                        </div>
+                        <div class="example-prompt" onclick="selectPrompt('📈 Show my spending trends and budget performance')">
+                            <div class="example-prompt-title">📈 Show spending trends</div>
+                            <div class="example-prompt-desc">Analyze spending patterns and budget performance</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="input-area">
+            <div class="input-container">
+                <div class="input-wrapper">
+                    <textarea class="input-field" placeholder="Ask about your budget..." rows="1"></textarea>
+                    <div class="input-actions">
+                        <button class="attach-btn">
+                            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                            </svg>
+                        </button>
+                        <button class="send-btn">
+                            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="m5 12 7-7v4l7 3-7 3v4l-7-7Z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // WebSocket connection to bridge server
+        let ws = null;
+        let isConnected = false;
+        
+        // Chat session management
+        let currentChatId = null;
+        let chatSessions = JSON.parse(localStorage.getItem('budget-assistant-chats') || '{}');
+        let currentMessages = [];
+        
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}`;
+            
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = function() {
+                console.log('🔗 Connected to Budget Assistant');
+                isConnected = true;
+                updateConnectionStatus('Connected to Budget Assistant');
+            };
+            
+            ws.onmessage = function(event) {
+                try {
+                    const message = JSON.parse(event.data);
+                    handleServerMessage(message);
+                } catch (error) {
+                    console.error('Error parsing message:', error);
+                }
+            };
+            
+            ws.onclose = function() {
+                console.log('❌ Disconnected from Budget Assistant');
+                isConnected = false;
+                updateConnectionStatus('Disconnected - Reconnecting...');
+                
+                // Reconnect after 2 seconds
+                setTimeout(connectWebSocket, 2000);
+            };
+            
+            ws.onerror = function(error) {
+                console.error('WebSocket error:', error);
+            };
+        }
+        
+        function handleServerMessage(message) {
+            switch (message.type) {
+                case 'claude_response':
+                    addClaudeResponse(message.data);
+                    break;
+                    
+                case 'connection_status':
+                    if (message.data.claude_ready) {
+                        updateConnectionStatus('Connected to YNAB');
+                    } else {
+                        updateConnectionStatus('Starting up...');
+                    }
+                    break;
+                    
+                default:
+                    console.log('Unknown message type:', message.type);
+            }
+        }
+        
+        function addClaudeResponse(response) {
+            // Hide typing indicator
+            hideTypingIndicator();
+            
+            // Add to current messages
+            if (currentChatId) {
+                currentMessages.push({
+                    role: 'assistant',
+                    content: response,
+                    timestamp: Date.now()
+                });
+            }
+            
+            // Add to DOM
+            addClaudeResponseToDOM(response);
+            
+            // Save chat
+            saveCurrentChat();
+            
+            // Scroll to bottom with smooth scrolling
+            scrollToBottom();
+        }
+        
+        function updateConnectionStatus(status) {
+            const statusElement = document.querySelector('.connection-status span');
+            if (statusElement) {
+                statusElement.textContent = status;
+            }
+        }
+        
+        function runAction(prompt) {
+            if (isConnected) {
+                // Add user message to chat
+                addUserMessage(prompt);
+                
+                // Show typing indicator
+                showTypingIndicator();
+                
+                // Send to Claude Code via WebSocket
+                ws.send(JSON.stringify({
+                    type: 'user_message',
+                    data: prompt
+                }));
+            } else {
+                // Fallback: just add to input field if not connected
+                const inputField = document.querySelector('.input-field');
+                inputField.value = prompt;
+                inputField.focus();
+            }
+        }
+        
+        function submitMessage() {
+            const inputField = document.querySelector('.input-field');
+            const message = inputField.value.trim();
+            
+            if (message && isConnected) {
+                // Add user message to chat
+                addUserMessage(message);
+                
+                // Show typing indicator
+                showTypingIndicator();
+                
+                // Send to Claude Code via WebSocket
+                ws.send(JSON.stringify({
+                    type: 'user_message',
+                    data: message
+                }));
+                
+                // Clear the input
+                inputField.value = '';
+                inputField.style.height = 'auto';
+            }
+        }
+        
+        function addUserMessage(message) {
+            // Create new chat if none exists
+            if (!currentChatId) {
+                currentChatId = generateChatId();
+            }
+            
+            // Add to current messages
+            currentMessages.push({
+                role: 'user',
+                content: message,
+                timestamp: Date.now()
+            });
+            
+            // Add to DOM
+            addUserMessageToDOM(message);
+            
+            // Save chat
+            saveCurrentChat();
+            
+            // Scroll to bottom
+            scrollToBottom();
+        }
+        
+        function hideWelcomeScreen() {
+            const welcomeScreen = document.querySelector('.welcome-screen');
+            if (welcomeScreen && welcomeScreen.style.display !== 'none') {
+                welcomeScreen.style.display = 'none';
+            }
+        }
+        
+        function scrollToBottom() {
+            const chatView = document.querySelector('.chat-view');
+            if (chatView) {
+                chatView.scrollTo({
+                    top: chatView.scrollHeight,
+                    behavior: 'smooth'
+                });
+            }
+        }
+        
+        function selectPrompt(prompt) {
+            const inputField = document.querySelector('.input-field');
+            inputField.value = prompt;
+            inputField.focus();
+        }
+        
+        // Chat session management
+        function generateChatId() {
+            return 'chat-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        }
+        
+        function createNewChat() {
+            currentChatId = generateChatId();
+            currentMessages = [];
+            
+            // Clear current chat display
+            const chatMessages = document.querySelector('.chat-messages');
+            chatMessages.innerHTML = `
+                <div class="welcome-screen">
+                    <svg class="claude-logo-large" viewBox="0 0 24 24" fill="var(--accent)">
+                        <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zM8 12a1 1 0 0 1 1-1h6a1 1 0 0 1 0 2H9a1 1 0 0 1-1-1zm0-4a1 1 0 0 1 1-1h6a1 1 0 0 1 0 2H9a1 1 0 0 1-1-1zm0 8a1 1 0 0 1 1-1h4a1 1 0 0 1 0 2H9a1 1 0 0 1-1-1z"/>
+                    </svg>
+                    <h1 class="welcome-title">How can I help with your budget?</h1>
+                    <p class="welcome-subtitle">I'm your personal YNAB budget assistant with full access to your financial data</p>
+                    
+                    <div class="example-prompts">
+                        <div class="example-prompt" onclick="selectPrompt('💰 Fund upcoming bills')">
+                            <div class="example-prompt-title">💰 Fund upcoming bills</div>
+                            <div class="example-prompt-desc">Automatically allocate money to bills due this month</div>
+                        </div>
+                        <div class="example-prompt" onclick="selectPrompt('📊 Check category balances')">
+                            <div class="example-prompt-title">📊 Check category balances</div>
+                            <div class="example-prompt-desc">Review spending and available funds by category</div>
+                        </div>
+                        <div class="example-prompt" onclick="selectPrompt('🏷️ Show me all unapproved transactions and help me categorize them')">
+                            <div class="example-prompt-title">🏷️ Categorize transactions</div>
+                            <div class="example-prompt-desc">Review and approve recent uncategorized transactions</div>
+                        </div>
+                        <div class="example-prompt" onclick="selectPrompt('🎯 What can I afford this month?')">
+                            <div class="example-prompt-title">🎯 What can I afford?</div>
+                            <div class="example-prompt-desc">Check available funds for specific purchases or goals</div>
+                        </div>
+                        <div class="example-prompt" onclick="selectPrompt('🔄 Move money between categories to rebalance my budget')">
+                            <div class="example-prompt-title">🔄 Move money between categories</div>
+                            <div class="example-prompt-desc">Transfer funds to cover overspending or new purchases</div>
+                        </div>
+                        <div class="example-prompt" onclick="selectPrompt('📈 Show my spending trends and budget performance')">
+                            <div class="example-prompt-title">📈 Show spending trends</div>
+                            <div class="example-prompt-desc">Analyze spending patterns and budget performance</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Update sidebar
+            updateChatSidebar();
+        }
+        
+        function saveCurrentChat() {
+            if (currentChatId && currentMessages.length > 0) {
+                // Generate title from first user message
+                const firstUserMessage = currentMessages.find(msg => msg.role === 'user');
+                const title = firstUserMessage ? 
+                    (firstUserMessage.content.substring(0, 50) + (firstUserMessage.content.length > 50 ? '...' : '')) :
+                    'New Chat';
+                
+                chatSessions[currentChatId] = {
+                    id: currentChatId,
+                    title: title,
+                    messages: [...currentMessages],
+                    timestamp: Date.now()
+                };
+                
+                localStorage.setItem('budget-assistant-chats', JSON.stringify(chatSessions));
+                updateChatSidebar();
+            }
+        }
+        
+        function loadChat(chatId) {
+            const chat = chatSessions[chatId];
+            if (!chat) return;
+            
+            currentChatId = chatId;
+            currentMessages = [...chat.messages];
+            
+            // Clear and rebuild chat display
+            const chatMessages = document.querySelector('.chat-messages');
+            chatMessages.innerHTML = '';
+            
+            currentMessages.forEach(message => {
+                if (message.role === 'user') {
+                    addUserMessageToDOM(message.content);
+                } else {
+                    addClaudeResponseToDOM(message.content);
+                }
+            });
+            
+            updateChatSidebar();
+            scrollToBottom();
+        }
+        
+        function updateChatSidebar() {
+            const chatList = document.getElementById('chat-list');
+            const chatListHeader = document.getElementById('chat-list-header');
+            
+            // Sort chats by timestamp (newest first)
+            const sortedChats = Object.values(chatSessions)
+                .sort((a, b) => b.timestamp - a.timestamp);
+            
+            if (sortedChats.length === 0) {
+                chatListHeader.style.display = 'none';
+                chatList.innerHTML = '';
+                return;
+            }
+            
+            chatListHeader.style.display = 'block';
+            
+            chatList.innerHTML = sortedChats.map(chat => `
+                <a href="#" class="chat-item ${chat.id === currentChatId ? 'active' : ''}" 
+                   onclick="loadChat('${chat.id}')">
+                    ${chat.title}
+                </a>
+            `).join('');
+        }
+        
+        function addUserMessageToDOM(message) {
+            const chatMessages = document.querySelector('.chat-messages');
+            
+            const messageGroup = document.createElement('div');
+            messageGroup.className = 'message-group user';
+            
+            const roleLabel = document.createElement('div');
+            roleLabel.className = 'message-role';
+            roleLabel.textContent = 'Charlie';
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+            
+            const messageContent = document.createElement('div');
+            messageContent.className = 'message-content';
+            
+            const paragraph = document.createElement('p');
+            paragraph.textContent = message;
+            
+            messageContent.appendChild(paragraph);
+            messageDiv.appendChild(messageContent);
+            messageGroup.appendChild(roleLabel);
+            messageGroup.appendChild(messageDiv);
+            
+            chatMessages.appendChild(messageGroup);
+        }
+        
+        function addClaudeResponseToDOM(response) {
+            const chatMessages = document.querySelector('.chat-messages');
+            
+            const messageGroup = document.createElement('div');
+            messageGroup.className = 'message-group assistant';
+            
+            const roleLabel = document.createElement('div');
+            roleLabel.className = 'message-role';
+            roleLabel.textContent = 'Assistant';
+            
+            const message = document.createElement('div');
+            message.className = 'message';
+            
+            const messageContent = document.createElement('div');
+            messageContent.className = 'message-content';
+            
+            // Debug logging
+            console.log('Response length:', response.length, 'chars');
+            console.log('Response preview:', response.substring(0, 200) + '...');
+            
+            // More flexible detection for budget analysis
+            const isBudgetAnalysis = response.includes('budget') || 
+                                   response.includes('Budget') || 
+                                   response.includes('spending') || 
+                                   response.includes('over') || 
+                                   response.includes('under') ||
+                                   response.includes('categories') ||
+                                   response.includes('allocated') ||
+                                   response.includes('vs') ||
+                                   response.includes('remaining');
+            
+            console.log('Is budget analysis:', isBudgetAnalysis);
+            
+            if (isBudgetAnalysis) {
+                console.log('Using formatBudgetAnalysis');
+                formatBudgetAnalysis(response, messageContent);
+            } else {
+                console.log('Using regular formatting');
+                // Use enhanced formatting for all responses
+                formatRegularResponse(response, messageContent);
+            }
+            
+            message.appendChild(messageContent);
+            messageGroup.appendChild(roleLabel);
+            messageGroup.appendChild(message);
+            
+            chatMessages.appendChild(messageGroup);
+        }
+        
+        function formatBudgetAnalysis(response, messageContent) {
+            const lines = response.split('\n');
+            let currentSection = '';
+            let i = 0;
+            
+            // Check if this actually has budget data
+            const hasFullBudgetData = response.includes('vs budgeted') || 
+                                    response.includes('vs target') || 
+                                    response.includes('spent $') ||
+                                    response.includes('Budgeted:') || 
+                                    response.includes('Target:');
+            
+            if (!hasFullBudgetData) {
+                // Fall back to regular formatting with better structure
+                formatRegularResponse(response, messageContent);
+                return;
+            }
+            
+            while (i < lines.length) {
+                const line = lines[i].trim();
+                
+                // Markdown headers (## Section Name)
+                if (line.startsWith('##')) {
+                    const headerText = line.replace(/^##\s*/, '').trim();
+                    const headerDiv = document.createElement('div');
+                    headerDiv.className = 'analysis-header';
+                    // Process markdown formatting in headers
+                    headerDiv.innerHTML = headerText
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\*(.*?)\*/g, '<em>$1</em>');
+                    messageContent.appendChild(headerDiv);
+                    currentSection = headerText.includes('Over Budget') || headerText.includes('🔴') ? 'over' : 'under';
+                }
+                // Budget category bullet points (• **Category**: details)
+                else if (line.startsWith('•') && line.includes('**') && line.includes('$')) {
+                    console.log('Attempting to parse category line:', line);
+                    const categoryData = parseBudgetCategory(lines, i);
+                    console.log('Parsed category data:', categoryData);
+                    
+                    if (categoryData && categoryData.budgeted > 0) {
+                        console.log('Creating card for:', categoryData.name);
+                        const card = createBudgetCard(categoryData, currentSection);
+                        messageContent.appendChild(card);
+                    } else {
+                        console.log('Card parsing failed, using bullet point fallback');
+                        // Fallback to bullet point if parsing failed
+                        const insightDiv = document.createElement('div');
+                        insightDiv.className = 'insight-item';
+                        insightDiv.innerHTML = line
+                            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                            .replace(/\*(.*?)\*/g, '<em>$1</em>');
+                        messageContent.appendChild(insightDiv);
+                    }
+                }
+                // Regular bullet points (• text)
+                else if (line.startsWith('•') || line.startsWith('-')) {
+                    const insightDiv = document.createElement('div');
+                    insightDiv.className = 'insight-item';
+                    // Process markdown formatting in bullet points
+                    insightDiv.innerHTML = line
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                        .replace(/`(.*?)`/g, '<code>$1</code>');
+                    messageContent.appendChild(insightDiv);
+                }
+                // Number lists (1. text)
+                else if (/^\d+\./.test(line)) {
+                    const insightDiv = document.createElement('div');
+                    insightDiv.className = 'insight-item';
+                    // Process markdown formatting in numbered lists
+                    insightDiv.innerHTML = line
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                        .replace(/`(.*?)`/g, '<code>$1</code>');
+                    messageContent.appendChild(insightDiv);
+                }
+                // Regular paragraphs
+                else if (line && !line.startsWith('#')) {
+                    const paragraphDiv = document.createElement('p');
+                    paragraphDiv.innerHTML = line
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\*(.*?)\*/g, '<em>$1</em>');
+                    messageContent.appendChild(paragraphDiv);
+                }
+                
+                i++;
+            }
+        }
+        
+        function formatRegularResponse(response, messageContent) {
+            const lines = response.split('\n');
+            let currentParagraph = [];
+            
+            lines.forEach(line => {
+                line = line.trim();
+                
+                if (!line) {
+                    // Empty line - end current paragraph
+                    if (currentParagraph.length > 0) {
+                        const p = document.createElement('p');
+                        p.innerHTML = currentParagraph.join('<br>');
+                        messageContent.appendChild(p);
+                        currentParagraph = [];
+                    }
+                } else if (line.startsWith('•') || line.startsWith('-')) {
+                    // End current paragraph and add bullet point
+                    if (currentParagraph.length > 0) {
+                        const p = document.createElement('p');
+                        p.innerHTML = currentParagraph.join('<br>');
+                        messageContent.appendChild(p);
+                        currentParagraph = [];
+                    }
+                    
+                    const bulletDiv = document.createElement('div');
+                    bulletDiv.className = 'insight-item';
+                    bulletDiv.innerHTML = line.replace(/^[•-]\s*/, '• ');
+                    messageContent.appendChild(bulletDiv);
+                } else if (line.endsWith(':') && line.length < 50) {
+                    // Looks like a header
+                    if (currentParagraph.length > 0) {
+                        const p = document.createElement('p');
+                        p.innerHTML = currentParagraph.join('<br>');
+                        messageContent.appendChild(p);
+                        currentParagraph = [];
+                    }
+                    
+                    const headerDiv = document.createElement('div');
+                    headerDiv.className = 'analysis-header';
+                    headerDiv.innerHTML = line;
+                    messageContent.appendChild(headerDiv);
+                } else {
+                    // Regular line - add to current paragraph
+                    const formatted = line
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                        .replace(/`(.*?)`/g, '<code>$1</code>');
+                    currentParagraph.push(formatted);
+                }
+            });
+            
+            // Add any remaining paragraph
+            if (currentParagraph.length > 0) {
+                const p = document.createElement('p');
+                p.innerHTML = currentParagraph.join('<br>');
+                messageContent.appendChild(p);
+            }
+        }
+        
+        function parseBudgetCategory(lines, startIndex) {
+            const categoryLine = lines[startIndex].trim();
+            
+            // Handle new format: • **Category Name**: details
+            let categoryMatch = categoryLine.match(/^•\s*\*\*(.*?)\*\*:\s*(.*)/);
+            if (!categoryMatch) {
+                // Try old format: Category Name: details  
+                categoryMatch = categoryLine.match(/^([^:]+):\s*(.*)/);
+            }
+            
+            if (!categoryMatch) return null;
+            
+            const categoryName = categoryMatch[1].trim();
+            const statusText = categoryMatch[2].trim();
+            
+            // Parse the status text for budget information
+            let budgeted = 0, spent = 0, remaining = 0;
+            
+            // Look for "spent $X vs budgeted $Y" pattern
+            const vsPattern = statusText.match(/spent \$?([\d,\.]+) vs (?:budgeted|target) \$?([\d,\.]+)/);
+            if (vsPattern) {
+                spent = parseFloat(vsPattern[1].replace(/,/g, ''));
+                budgeted = parseFloat(vsPattern[2].replace(/,/g, ''));
+                remaining = budgeted - spent;
+            } else {
+                // Look for remaining pattern: "$X remaining"
+                const remainingPattern = statusText.match(/\$?([\d,\.]+) remaining/);
+                if (remainingPattern) {
+                    remaining = parseFloat(remainingPattern[1].replace(/,/g, ''));
+                    
+                    // Try to find budgeted amount in parentheses
+                    const budgetedPattern = statusText.match(/budgeted \$?([\d,\.]+)/);
+                    if (budgetedPattern) {
+                        budgeted = parseFloat(budgetedPattern[1].replace(/,/g, ''));
+                        spent = budgeted - remaining;
+                    }
+                } else {
+                    // Look for over budget pattern: "-$X (spent $Y vs budgeted $Z)"
+                    const overPattern = statusText.match(/-\$?([\d,\.]+).*spent \$?([\d,\.]+) vs budgeted \$?([\d,\.]+)/);
+                    if (overPattern) {
+                        const overAmount = parseFloat(overPattern[1].replace(/,/g, ''));
+                        spent = parseFloat(overPattern[2].replace(/,/g, ''));
+                        budgeted = parseFloat(overPattern[3].replace(/,/g, ''));
+                        remaining = -overAmount;
+                    }
+                }
+            }
+            
+            // Calculate percentage
+            let percentage = 0;
+            if (budgeted > 0) {
+                percentage = Math.min((spent / budgeted) * 100, 200); // Cap at 200% for very over budget
+            }
+            
+            return {
+                name: categoryName,
+                budgeted,
+                spent,
+                remaining,
+                percentage: percentage,
+                status: remaining < 0 ? 'over' : 'under',
+                nextIndex: startIndex + 1
+            };
+        }
+        
+        function createBudgetCard(data, sectionType) {
+            const card = document.createElement('div');
+            card.className = 'budget-card';
+            
+            const isOverBudget = data.remaining < 0;
+            const emoji = getCategoryEmoji(data.name);
+            
+            card.innerHTML = `
+                <div class="budget-card-header">
+                    <div class="budget-card-title">
+                        ${emoji} ${data.name}
+                    </div>
+                    <div class="budget-card-status">${Math.round(data.percentage)}% spent</div>
+                </div>
+                <div class="budget-row">
+                    <span class="budget-label">Budgeted</span>
+                    <span class="budget-amount amount-neutral">$${data.budgeted.toLocaleString()}</span>
+                </div>
+                <div class="budget-row">
+                    <span class="budget-label">Spent</span>
+                    <span class="budget-amount ${isOverBudget ? 'amount-negative' : 'amount-neutral'}">$${data.spent.toLocaleString()}</span>
+                </div>
+                <div class="budget-row">
+                    <span class="budget-label">${isOverBudget ? 'Over Budget' : 'Remaining'}</span>
+                    <span class="budget-amount ${isOverBudget ? 'amount-negative' : 'amount-positive'}">$${Math.abs(data.remaining).toLocaleString()}</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: ${data.percentage}%; background: ${isOverBudget ? '#ef4444' : 'var(--accent)'}"></div>
+                </div>
+            `;
+            
+            return card;
+        }
+        
+        function getCategoryEmoji(categoryName) {
+            const name = categoryName.toLowerCase();
+            if (name.includes('gas') || name.includes('transport')) return '⛽';
+            if (name.includes('dog') || name.includes('pet')) return '🐕';
+            if (name.includes('fun') || name.includes('entertainment')) return '🎉';
+            if (name.includes('groceries') || name.includes('food')) return '🛒';
+            if (name.includes('utilities')) return '⚡';
+            if (name.includes('daycare') || name.includes('childcare')) return '👶';
+            if (name.includes('brokerage') || name.includes('invest')) return '📈';
+            if (name.includes('dining') || name.includes('restaurant')) return '🍽️';
+            if (name.includes('haircut') || name.includes('beauty')) return '✂️';
+            if (name.includes('misc') || name.includes('other')) return '📦';
+            return '💰';
+        }
+        
+        function showTypingIndicator() {
+            hideWelcomeScreen();
+            
+            const chatMessages = document.querySelector('.chat-messages');
+            
+            const typingIndicator = document.createElement('div');
+            typingIndicator.className = 'typing-indicator assistant';
+            typingIndicator.id = 'typing-indicator';
+            
+            const roleLabel = document.createElement('div');
+            roleLabel.className = 'message-role';
+            roleLabel.textContent = 'Assistant';
+            
+            const typingMessage = document.createElement('div');
+            typingMessage.className = 'typing-message';
+            
+            const typingContent = document.createElement('div');
+            typingContent.className = 'typing-content';
+            
+            const typingText = document.createElement('span');
+            typingText.textContent = 'Claude is thinking';
+            
+            const typingDots = document.createElement('div');
+            typingDots.className = 'typing-dots';
+            
+            for (let i = 0; i < 3; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'typing-dot';
+                typingDots.appendChild(dot);
+            }
+            
+            typingContent.appendChild(typingText);
+            typingContent.appendChild(typingDots);
+            typingMessage.appendChild(typingContent);
+            typingIndicator.appendChild(roleLabel);
+            typingIndicator.appendChild(typingMessage);
+            
+            chatMessages.appendChild(typingIndicator);
+            
+            // Scroll to bottom
+            scrollToBottom();
+        }
+        
+        function hideTypingIndicator() {
+            const typingIndicator = document.getElementById('typing-indicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+        }
+        
+        // Auto-resize textarea
+        document.querySelector('.input-field').addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = this.scrollHeight + 'px';
+        });
+        
+        // Send message on Enter (but allow Shift+Enter for new lines)
+        document.querySelector('.input-field').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                submitMessage();
+            }
+        });
+        
+        // Send button click
+        document.querySelector('.send-btn').addEventListener('click', function() {
+            submitMessage();
+        });
+        
+        // Initialize app when page loads
+        window.addEventListener('load', function() {
+            connectWebSocket();
+            
+            // Load existing chats or create new one
+            updateChatSidebar();
+            if (Object.keys(chatSessions).length === 0) {
+                createNewChat();
+            } else {
+                // Load most recent chat
+                const sortedChats = Object.values(chatSessions)
+                    .sort((a, b) => b.timestamp - a.timestamp);
+                if (sortedChats.length > 0) {
+                    loadChat(sortedChats[0].id);
+                } else {
+                    createNewChat();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
