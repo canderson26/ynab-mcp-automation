@@ -2242,18 +2242,9 @@
         }
 
         function formatRegularResponse(response, messageContent) {
-            // First, let's break up walls of text by adding line breaks around sections
-            let formattedResponse = response
-                // Add line breaks before common section patterns
-                .replace(/(Current situation:|Budget constraints:|Better approach:|To afford|While mathematically possible)/g, '\n\n$1')
-                // Add line breaks before bullet points that aren't already on new lines
-                .replace(/([.!]) - /g, '$1\n- ')
-                // Add line breaks before numbered lists
-                .replace(/([.!]) (\d+\.)/g, '$1\n$2')
-                // Clean up multiple consecutive line breaks
-                .replace(/\n\n+/g, '\n\n');
-            
-            const lines = formattedResponse.split('\n');
+            // Since responses now follow CLAUDE.md formatting standards, 
+            // we can use simpler parsing for consistent structure
+            const lines = response.split('\n');
             let currentParagraph = [];
             
             lines.forEach(line => {
@@ -2284,8 +2275,8 @@
                         .replace(/\*(.*?)\*/g, '<em>$1</em>')
                         .replace(/`(.*?)`/g, '<code>$1</code>');
                     messageContent.appendChild(bulletDiv);
-                } else if (line.endsWith(':') && line.length < 60) {
-                    // Looks like a header
+                } else if (line.startsWith('## ')) {
+                    // Standard header format from CLAUDE.md: ## Section Name
                     if (currentParagraph.length > 0) {
                         const p = document.createElement('p');
                         p.innerHTML = currentParagraph.join('<br>');
@@ -2295,7 +2286,7 @@
                     
                     const headerDiv = document.createElement('div');
                     headerDiv.className = 'analysis-header';
-                    headerDiv.innerHTML = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                    headerDiv.innerHTML = line.replace(/^## /, '').trim();
                     messageContent.appendChild(headerDiv);
                 } else {
                     // Regular line - add to current paragraph
