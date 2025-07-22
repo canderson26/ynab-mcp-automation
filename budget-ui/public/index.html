@@ -1759,16 +1759,9 @@
 
             const isTargetAmounts = (response.includes('budget targets') || 
                                    response.includes('monthly targets') ||
-                                   response.includes('Target monthly amounts') ||
-                                   response.includes('Major Categories')) &&
+                                   response.includes('Target monthly amounts')) &&
                                   response.includes('$') && 
-                                  (response.includes('Essential Bills') || 
-                                   response.includes('Personal Care') ||
-                                   response.includes('Savings') ||
-                                   response.includes('Discretionary') ||
-                                   response.includes('Housing & Debts') ||
-                                   response.includes('Regular Bills') ||
-                                   response.includes('Savings & Investments'));
+                                  response.includes('## Essential Bills');
             
             const isBudgetAnalysis = hasStructuredData || 
                                    isAvailableFunds ||
@@ -1872,16 +1865,9 @@
 
             const isTargetAmounts = (response.includes('budget targets') || 
                                    response.includes('monthly targets') ||
-                                   response.includes('Target monthly amounts') ||
-                                   response.includes('Major Categories')) &&
+                                   response.includes('Target monthly amounts')) &&
                                   response.includes('$') && 
-                                  (response.includes('Essential Bills') || 
-                                   response.includes('Personal Care') ||
-                                   response.includes('Savings') ||
-                                   response.includes('Discretionary') ||
-                                   response.includes('Housing & Debts') ||
-                                   response.includes('Regular Bills') ||
-                                   response.includes('Savings & Investments'));
+                                  response.includes('## Essential Bills');
             
             const isBudgetAnalysis = hasStructuredData || 
                                    isAvailableFunds ||
@@ -2327,34 +2313,22 @@
                     continue;
                 }
                 
-                if (line.startsWith('##') || line.startsWith('###')) {
-                    // Markdown headers: ## Monthly Budget Targets or ### Fixed Bills & Obligations
-                    const headerText = line.replace(/^#{2,3}\s*/, '').trim().replace(/\*\*/g, '');
+                if (line.startsWith('## ')) {
+                    // Section headers: ## Essential Bills
+                    const headerText = line.replace(/^## /, '').trim();
                     const headerDiv = document.createElement('div');
                     headerDiv.className = 'analysis-header';
                     headerDiv.innerHTML = headerText;
                     messageContent.appendChild(headerDiv);
-                } else if (line.match(/^\*\*.*:\*\*$/)) {
-                    // Bold section headers: **Savings & Investments:**
-                    const headerText = line.replace(/^\*\*/, '').replace(/:\*\*$/, '').trim();
-                    const headerDiv = document.createElement('div');
-                    headerDiv.className = 'analysis-header';
-                    headerDiv.innerHTML = headerText;
-                    messageContent.appendChild(headerDiv);
-                } else if (line.startsWith('-') && line.includes('$')) {
-                    // Target amount line: - **HOA**: $108 (quarterly $324 ÷ 3)
-                    // Extract just category name and amount
-                    let match = line.match(/^-\s*\*\*(.*?)\*\*:\s*\$([0-9,\.]+)/);
-                    if (!match) {
-                        // Try without bold formatting: - Groceries: $1,200
-                        match = line.match(/^-\s*(.*?):\s*\$([0-9,\.]+)/);
-                    }
+                } else if (line.startsWith('- ') && line.includes(': $')) {
+                    // Target amount line: - Groceries: $1,200
+                    const match = line.match(/^- (.*?): \$([0-9,\.]+)/);
                     
                     if (match) {
                         const categoryName = match[1];
                         const targetAmount = match[2];
                         
-                        // Create simplified target amount card - just category and amount
+                        // Create clean target amount card
                         const targetCard = document.createElement('div');
                         targetCard.className = 'budget-card target-card';
                         
@@ -2369,21 +2343,18 @@
                         
                         messageContent.appendChild(targetCard);
                     }
-                } else if (line.includes('Total') && line.includes('$') && (line.includes('monthly') || line.includes('targets'))) {
-                    // Handle summary lines like "Total monthly targets: $16,904.22"
+                } else if (line.includes('Total monthly targets:')) {
+                    // Handle summary line: Total monthly targets: $16,904.22
                     const p = document.createElement('p');
                     p.className = 'summary-text';
+                    p.innerHTML = line;
+                    messageContent.appendChild(p);
+                } else if (line.length > 0 && !line.startsWith('-') && !line.startsWith('#')) {
+                    // Regular text lines (intro text)
+                    const p = document.createElement('p');
                     p.innerHTML = line
                         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                         .replace(/\*(.*?)\*/g, '<em>$1</em>');
-                    messageContent.appendChild(p);
-                } else if (line.length > 0 && !line.startsWith('-') && !line.startsWith('#')) {
-                    // Regular text lines (like intro text)
-                    const p = document.createElement('p');
-                    p.innerHTML = line
-                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                        .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                        .replace(/`(.*?)`/g, '<code>$1</code>');
                     messageContent.appendChild(p);
                 }
                 
