@@ -11,6 +11,7 @@ const http = require('http');
 const { spawn, exec } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 
 const app = express();
 const server = http.createServer(app);
@@ -62,51 +63,129 @@ class ClaudeCodeManager {
         });
     }
 
-    sendMessage(message) {
+    sendMessage(message, retryCount = 0) {
         console.log('Sending to Claude Code:', message.substring(0, 100) + '...');
         
-        // Try using exec instead of spawn for better shell handling
-        const command = `cd "${CLAUDE_WORKSPACE}" && echo "${message.replace(/"/g, '\\"')}" | claude --print`;
-        console.log('Executing command:', command.substring(0, 150) + '...');
-        
-        exec(command, {
+        // Use spawn with stdin approach - more reliable than exec
+        const claudeProcess = spawn('claude', ['--print'], {
+            cwd: CLAUDE_WORKSPACE,
+            stdio: ['pipe', 'pipe', 'pipe'],
             env: {
                 ...process.env,
                 PATH: process.env.PATH
-            },
-            maxBuffer: 1024 * 1024 * 10, // 10MB buffer
-            timeout: 60000 // 60 second timeout
-        }, (error, stdout, stderr) => {
-            console.log(`Claude Code exec completed`);
-            console.log(`Claude Code response received (${stdout.length} chars)`);
+            }
+        });
+
+        let response = '';
+        let errorOutput = '';
+        let processTimeout = null;
+
+        // Set a timeout for the process
+        processTimeout = setTimeout(() => {
+            console.log('Claude Code process timeout, killing...');
+            claudeProcess.kill('SIGTERM');
+        }, 30000); // 30 second timeout
+
+        claudeProcess.stdout.on('data', (data) => {
+            response += data.toString();
+        });
+
+        claudeProcess.stderr.on('data', (data) => {
+            errorOutput += data.toString();
+            console.error('Claude Code stderr:', data.toString());
+        });
+
+        claudeProcess.on('close', (code) => {
+            if (processTimeout) {
+                clearTimeout(processTimeout);
+                processTimeout = null;
+            }
+
+            console.log(`Claude Code process closed with code: ${code}`);
+            console.log(`Claude Code response received (${response.length} chars)`);
             
-            if (error) {
-                console.error(`Claude Code execution error:`, error);
-                console.error('Error output:', stderr);
+            // Check if we got "Execution error" or other failure indicators
+            const isExecutionError = response.trim() === 'Execution error' || 
+                                   response.trim().length < 50 || 
+                                   (code !== 0 && response.trim().length < 100);
+            
+            if (isExecutionError && retryCount < 2) {
+                console.log(`Execution error detected, retrying... (attempt ${retryCount + 1})`);
+                setTimeout(() => {
+                    this.sendMessage(message, retryCount + 1);
+                }, 1000); // Wait 1 second before retry
+                return;
+            }
+
+            if (code !== 0) {
+                console.error(`Claude Code exited with non-zero code: ${code}`);
+                console.error('Error output:', errorOutput);
             }
             
-            if (stderr) {
-                console.error('Claude Code stderr:', stderr);
+            if (response.length < 100) {
+                console.log('Short response content:', JSON.stringify(response));
+                console.log('Raw response:', response);
+                console.log('Error output:', errorOutput);
             }
             
-            if (stdout.length < 100) {
-                console.log('Short response content:', JSON.stringify(stdout));
-                console.log('Raw response:', stdout);
-                console.log('Error output:', stderr);
-            }
+            console.log('First 200 chars of response:', response.substring(0, 200));
             
-            console.log('First 200 chars of response:', stdout.substring(0, 200));
+            // If still getting execution error after retries, send a helpful message
+            if (response.trim() === 'Execution error') {
+                response = 'I encountered an issue processing your request. Please try again or rephrase your question.';
+            }
             
             // Broadcast to all connected clients
             wss.clients.forEach(client => {
                 if (client.readyState === WebSocket.OPEN) {
                     client.send(JSON.stringify({
                         type: 'claude_response',
-                        data: stdout.trim()
+                        data: response.trim()
                     }));
                 }
             });
         });
+
+        claudeProcess.on('error', (error) => {
+            if (processTimeout) {
+                clearTimeout(processTimeout);
+                processTimeout = null;
+            }
+
+            console.error('Claude Code process error:', error);
+            
+            // Retry on process errors too
+            if (retryCount < 2) {
+                console.log(`Process error, retrying... (attempt ${retryCount + 1})`);
+                setTimeout(() => {
+                    this.sendMessage(message, retryCount + 1);
+                }, 1000);
+                return;
+            }
+            
+            // Send error message to client
+            wss.clients.forEach(client => {
+                if (client.readyState === WebSocket.OPEN) {
+                    client.send(JSON.stringify({
+                        type: 'claude_response',
+                        data: 'Sorry, there was an error processing your request. Please try again.'
+                    }));
+                }
+            });
+        });
+
+        // Send the message to Claude
+        try {
+            claudeProcess.stdin.write(message);
+            claudeProcess.stdin.end();
+        } catch (writeError) {
+            console.error('Failed to write to Claude process:', writeError);
+            
+            if (processTimeout) {
+                clearTimeout(processTimeout);
+                processTimeout = null;
+            }
+        }
     }
 
     stop() {

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Claude</title>
+    <title>Budgie - Your AI Budget Companion</title>
     <style>
         * {
             margin: 0;
@@ -12,14 +12,20 @@
         }
         
         :root {
-            --bg-primary: #212121;
-            --bg-secondary: #2d2d2d;
-            --bg-hover: #3d3d3d;
-            --border: #3d3d3d;
-            --text-primary: #e3e3e3;
-            --text-secondary: #999;
-            --accent: #d09966;
-            --sidebar-width: 260px;
+            /* YNAB-inspired color palette */
+            --bg-primary: #1e293b;           /* Deep navy blue - main background */
+            --bg-secondary: #334155;         /* Medium blue-gray - cards/secondary */
+            --bg-sidebar: #0f172a;           /* Darker blue - sidebar */
+            --bg-hover: #475569;             /* Light blue-gray - hover states */
+            --border: #475569;               /* Light blue-gray - borders */
+            --text-primary: #f8fafc;         /* Off-white - primary text */
+            --text-secondary: #94a3b8;       /* Light gray - secondary text */
+            --accent: #16a34a;               /* YNAB green - primary accent */
+            --accent-secondary: #eab308;     /* Warning yellow - secondary accent */
+            --success: #16a34a;              /* Green - positive amounts */
+            --warning: #eab308;              /* Yellow - warnings */
+            --danger: #dc2626;               /* Red - negative amounts */
+            --sidebar-width: 180px;
         }
         
         body {
@@ -36,10 +42,31 @@
         /* Sidebar */
         .sidebar {
             width: var(--sidebar-width);
-            background: var(--bg-secondary);
+            background: var(--bg-sidebar);
             display: flex;
             flex-direction: column;
             position: relative;
+            transition: width 0.3s ease;
+        }
+        
+        .sidebar.collapsed {
+            width: 60px;
+        }
+        
+        .sidebar-top {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .sidebar-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            align-items: center;
         }
         
         .resize-handle {
@@ -67,6 +94,47 @@
             font-weight: 600;
             font-size: 16px;
             color: var(--accent);
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar.collapsed .logo {
+            justify-content: center;
+            padding: 8px 4px;
+            gap: 0;
+        }
+        
+        .logo-text {
+            transition: opacity 0.3s ease;
+        }
+        
+        .sidebar.collapsed .logo-text {
+            opacity: 0;
+            width: 0;
+            overflow: hidden;
+        }
+        
+        .toggle-sidebar {
+            position: absolute;
+            top: 8px;
+            right: -12px;
+            width: 24px;
+            height: 24px;
+            background: var(--bg-sidebar);
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 12px;
+            z-index: 100;
+            transition: all 0.2s ease;
+        }
+        
+        .toggle-sidebar:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
         }
         
         .chat-list {
@@ -107,19 +175,54 @@
             background: var(--bg-hover);
         }
         
-        .new-chat-btn {
-            margin: 0 8px 8px;
-            padding: 10px;
+        /* Navigation Items */
+        .nav-item {
+            width: 32px;
+            height: 32px;
+            padding: 6px;
             background: transparent;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            color: var(--text-primary);
-            font-size: 13px;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            color: var(--text-secondary);
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            transition: all 0.2s;
+        }
+        
+        .nav-item:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+            border-color: var(--border);
+        }
+        
+        .nav-item.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+        
+        .sidebar-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .new-chat-btn {
+            margin: 0 8px 12px;
+            padding: 8px 4px;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 11px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
             transition: all 0.1s;
         }
         
@@ -133,6 +236,10 @@
             display: flex;
             flex-direction: column;
             position: relative;
+        }
+        
+        .sidebar.collapsed ~ .main-content {
+            margin-left: 0;
         }
         
         /* Chat View */
@@ -259,15 +366,16 @@
         }
         
         .message-group.user .message-content {
-            background: var(--accent);
-            color: var(--bg-primary);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
             padding: 12px 16px;
             border-radius: 18px 18px 4px 18px;
             max-width: 100%;
+            border: 1px solid var(--border);
         }
         
         .message-group.user .message-content p {
-            color: var(--bg-primary);
+            color: var(--text-primary);
             margin-bottom: 0;
         }
         
@@ -402,8 +510,8 @@
             font-family: 'SF Mono', Monaco, monospace;
         }
         
-        .amount-positive { color: #10b981; }
-        .amount-negative { color: #ef4444; }
+        .amount-positive { color: var(--success); }
+        .amount-negative { color: var(--danger); }
         .amount-neutral { color: var(--text-primary); }
         
         .progress-bar {
@@ -560,47 +668,51 @@
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            background: #10b981;
+            background: var(--success);
         }
         
         /* Sidebar Actions */
         .sidebar-actions {
             border-top: 1px solid var(--border);
-            padding: 16px 12px 12px;
+            padding: 12px 8px 8px;
         }
         
         .sidebar-actions-header {
-            font-size: 12px;
+            font-size: 10px;
             font-weight: 500;
             color: var(--text-secondary);
-            margin-bottom: 12px;
+            margin-bottom: 8px;
             text-transform: uppercase;
             letter-spacing: 0.05em;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 4px;
+            justify-content: center;
         }
         
         .sidebar-action-btn {
             width: 100%;
-            padding: 8px 10px;
+            padding: 8px 4px;
             background: transparent;
-            border: 1px solid var(--border);
+            border: 1px solid transparent;
             border-radius: 6px;
-            color: var(--text-primary);
-            font-size: 12px;
+            color: var(--text-secondary);
+            font-size: 10px;
             cursor: pointer;
             display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 8px;
-            margin-bottom: 6px;
+            gap: 4px;
+            margin-bottom: 4px;
             transition: all 0.2s;
-            text-align: left;
+            text-align: center;
+            min-height: 44px;
         }
         
         .sidebar-action-btn:hover {
             background: var(--bg-hover);
-            border-color: var(--accent);
+            color: var(--text-primary);
+            border-color: var(--border);
         }
         
         .sidebar-action-btn:last-child {
@@ -609,7 +721,6 @@
         
         .sidebar-action-icon {
             font-size: 14px;
-            width: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -617,11 +728,35 @@
         }
         
         .sidebar-action-text {
-            flex: 1;
             font-weight: 500;
-            white-space: nowrap;
+            line-height: 1.1;
+            font-size: 9px;
+            transition: opacity 0.3s ease;
+        }
+        
+        .sidebar.collapsed .sidebar-action-text {
+            opacity: 0;
+            height: 0;
             overflow: hidden;
-            text-overflow: ellipsis;
+        }
+        
+        .sidebar.collapsed .sidebar-action-btn {
+            min-height: 32px;
+            width: 32px;
+            margin: 0 auto 8px auto;
+            padding: 6px;
+        }
+        
+        .sidebar.collapsed .sidebar-actions-header {
+            opacity: 0;
+            height: 0;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        
+        .sidebar.collapsed .sidebar-actions {
+            padding: 8px 4px;
         }
         
         /* Input Area */
@@ -633,6 +768,11 @@
             background: linear-gradient(to top, var(--bg-primary) 0%, var(--bg-primary) 70%, transparent 100%);
             padding: 20px 32px 0px;
             z-index: 10;
+            transition: left 0.3s ease;
+        }
+        
+        .sidebar.collapsed + .main-content .input-area {
+            left: 60px;
         }
         
         .input-container {
@@ -653,8 +793,8 @@
         }
         
         .input-wrapper:focus-within {
-            border-color: #525252;
-            box-shadow: 0 0 0 1px rgba(82, 82, 82, 0.3);
+            border-color: var(--accent);
+            box-shadow: 0 0 0 1px rgba(22, 163, 74, 0.3);
         }
         
         .input-field {
@@ -884,6 +1024,137 @@
             0%, 60%, 100% { opacity: 0.4; }
             30% { opacity: 1; }
         }
+        
+        /* Chat History Page */
+        .chat-history-page {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            padding: 60px 32px 32px;
+            height: 100%;
+            overflow-y: auto;
+        }
+        
+        .chat-history-page.active {
+            display: flex;
+        }
+        
+        .chat-history-header {
+            width: 100%;
+            max-width: 800px;
+            margin-bottom: 32px;
+        }
+        
+        .chat-history-title {
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 24px;
+            text-align: center;
+        }
+        
+        .chat-history-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        
+        .chat-history-search {
+            flex: 1;
+            max-width: 400px;
+            position: relative;
+        }
+        
+        .chat-history-search input {
+            width: 100%;
+            padding: 12px 16px 12px 40px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        
+        .chat-history-search input:focus {
+            border-color: var(--accent);
+        }
+        
+        .chat-history-search input::placeholder {
+            color: var(--text-secondary);
+        }
+        
+        .chat-history-search svg {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+        }
+        
+        .new-chat-btn-large {
+            padding: 12px 20px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+        
+        .new-chat-btn-large:hover {
+            background: #15803d;
+        }
+        
+        .chat-history-list {
+            width: 100%;
+            max-width: 800px;
+        }
+        
+        .chat-history-count {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+        
+        .chat-history-count a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+        
+        .chat-history-item {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .chat-history-item:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent);
+        }
+        
+        .chat-history-item-title {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+        
+        .chat-history-item-meta {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
 
         /* Scrollbar */
         ::-webkit-scrollbar {
@@ -908,63 +1179,78 @@
     <div class="sidebar">
         <div class="resize-handle"></div>
         
-        <div class="sidebar-header">
+        <!-- Collapse/expand toggle button -->
+        <button class="toggle-sidebar" onclick="toggleSidebar()">
+            <span id="toggle-icon">‹</span>
+        </button>
+        
+        <!-- Budget Assistant header at the very top -->
+        <div class="sidebar-top">
             <div class="logo">
-                <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zM8 12a1 1 0 0 1 1-1h6a1 1 0 0 1 0 2H9a1 1 0 0 1-1-1zm0-4a1 1 0 0 1 1-1h6a1 1 0 0 1 0 2H9a1 1 0 0 1-1-1zm0 8a1 1 0 0 1 1-1h4a1 1 0 0 1 0 2H9a1 1 0 0 1-1-1z"/>
-                </svg>
-                Budget Assistant
+                <span style="font-size: 20px;">🐦</span>
+                <span class="logo-text">Budgie</span>
+            </div>
+            <div class="sidebar-nav">
+                <div class="nav-item active" onclick="showChatView()">
+                    <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                </div>
+                <div class="nav-item" onclick="showChatHistory()">
+                    <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14,2 14,8 20,8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10,9 9,9 8,9"></polyline>
+                    </svg>
+                </div>
+                <div class="nav-item" onclick="createNewChat()">
+                    <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 5v14m7-7H5"/>
+                    </svg>
+                </div>
             </div>
         </div>
         
-        <div class="new-chat-btn" onclick="createNewChat()">
-            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 5v14m7-7H5"/>
-            </svg>
-            New chat
-        </div>
-        
-        <div class="today-section" id="chat-list-header" style="display: none;">Today</div>
-        
-        <div class="chat-list" id="chat-list">
-            <!-- Chat history will be populated dynamically -->
-        </div>
-        
-        <!-- Quick Actions Section -->
-        <div class="sidebar-actions">
-            <div class="sidebar-actions-header">
-                ⚡ Quick Actions
+        <div class="sidebar-content">
+            <!-- Quick Actions Section -->
+            <div class="sidebar-actions">
+                <div class="sidebar-actions-header">
+                    ⚡ Quick Actions
+                </div>
+                <button class="sidebar-action-btn" onclick="runAction('Fund all my upcoming bills based on due dates')">
+                    <div class="sidebar-action-icon">💰</div>
+                    <div class="sidebar-action-text">Fund Bills</div>
+                </button>
+                <button class="sidebar-action-btn" onclick="runAction('Show me all unapproved transactions and help me categorize them')">
+                    <div class="sidebar-action-icon">🏷️</div>
+                    <div class="sidebar-action-text">Categorize</div>
+                </button>
+                <button class="sidebar-action-btn" onclick="runAction('Analyze my spending patterns for this month and identify areas where I\'m over or under budget')">
+                    <div class="sidebar-action-icon">📊</div>
+                    <div class="sidebar-action-text">Analyze Spending</div>
+                </button>
+                <button class="sidebar-action-btn" onclick="runAction('Show me how much I can safely spend on vacation this month')">
+                    <div class="sidebar-action-icon">🎯</div>
+                    <div class="sidebar-action-text">What Can I Afford?</div>
+                </button>
+                <button class="sidebar-action-btn" onclick="runAction('Move money from dining out to groceries to cover the overage')">
+                    <div class="sidebar-action-icon">🔄</div>
+                    <div class="sidebar-action-text">Rebalance</div>
+                </button>
             </div>
-            <button class="sidebar-action-btn" onclick="runAction('Fund all my upcoming bills based on due dates')">
-                <div class="sidebar-action-icon">💰</div>
-                <div class="sidebar-action-text">Fund Bills</div>
-            </button>
-            <button class="sidebar-action-btn" onclick="runAction('Show me all unapproved transactions and help me categorize them')">
-                <div class="sidebar-action-icon">🏷️</div>
-                <div class="sidebar-action-text">Categorize Transactions</div>
-            </button>
-            <button class="sidebar-action-btn" onclick="runAction('Analyze my spending patterns for this month and identify areas where I\'m over or under budget')">
-                <div class="sidebar-action-icon">📊</div>
-                <div class="sidebar-action-text">Analyze Spending</div>
-            </button>
-            <button class="sidebar-action-btn" onclick="runAction('Show me how much I can safely spend on vacation this month')">
-                <div class="sidebar-action-icon">🎯</div>
-                <div class="sidebar-action-text">What Can I Afford?</div>
-            </button>
-            <button class="sidebar-action-btn" onclick="runAction('Move money from dining out to groceries to cover the overage')">
-                <div class="sidebar-action-icon">🔄</div>
-                <div class="sidebar-action-text">Rebalance Categories</div>
-            </button>
         </div>
     </div>
     
     <div class="main-content">
         <div class="connection-status">
             <div class="connection-dot"></div>
-            <span>Connected to YNAB</span>
+            <span>Budgie Online</span>
         </div>
         
-        <div class="chat-view">
+        <!-- Chat View -->
+        <div class="chat-view active">
             <div class="chat-messages">
                 <!-- Welcome screen - shown when no messages -->
                 <div class="welcome-screen">
@@ -972,7 +1258,7 @@
                         <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zM8 12a1 1 0 0 1 1-1h6a1 1 0 0 1 0 2H9a1 1 0 0 1-1-1zm0-4a1 1 0 0 1 1-1h6a1 1 0 0 1 0 2H9a1 1 0 0 1-1-1zm0 8a1 1 0 0 1 1-1h4a1 1 0 0 1 0 2H9a1 1 0 0 1-1-1z"/>
                     </svg>
                     <h1 class="welcome-title">How can I help with your budget?</h1>
-                    <p class="welcome-subtitle">I'm your personal YNAB budget assistant with full access to your financial data</p>
+                    <p class="welcome-subtitle">I'm Budgie, your friendly AI budget companion with full access to your YNAB data</p>
                     
                     <div class="example-prompts">
                         <div class="example-prompt" onclick="selectPrompt('💰 Fund upcoming bills')">
@@ -1000,6 +1286,37 @@
                             <div class="example-prompt-desc">Analyze spending patterns and budget performance</div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Chat History Page -->
+        <div class="chat-history-page">
+            <div class="chat-history-header">
+                <h1 class="chat-history-title">Your chat history</h1>
+                <div class="chat-history-controls">
+                    <div class="chat-history-search">
+                        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <path d="m21 21-4.35-4.35"></path>
+                        </svg>
+                        <input type="text" placeholder="Search your chats..." id="chat-search" oninput="filterChatHistory(this.value)">
+                    </div>
+                    <button class="new-chat-btn-large" onclick="createNewChatFromHistory()">
+                        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 5v14m7-7H5"/>
+                        </svg>
+                        New chat
+                    </button>
+                </div>
+            </div>
+            
+            <div class="chat-history-list">
+                <div class="chat-history-count">
+                    You have <span id="chat-count">0</span> previous chats with Budgie
+                </div>
+                <div id="chat-history-items">
+                    <!-- Chat history items will be populated here -->
                 </div>
             </div>
         </div>
@@ -1042,9 +1359,9 @@
             ws = new WebSocket(wsUrl);
             
             ws.onopen = function() {
-                console.log('🔗 Connected to Budget Assistant');
+                console.log('🔗 Connected to Budgie');
                 isConnected = true;
-                updateConnectionStatus('Connected to Budget Assistant');
+                updateConnectionStatus('Budgie Online');
             };
             
             ws.onmessage = function(event) {
@@ -1057,7 +1374,7 @@
             };
             
             ws.onclose = function() {
-                console.log('❌ Disconnected from Budget Assistant');
+                console.log('❌ Disconnected from Budgie');
                 isConnected = false;
                 updateConnectionStatus('Disconnected - Reconnecting...');
                 
@@ -1226,7 +1543,7 @@
                         <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zM8 12a1 1 0 0 1 1-1h6a1 1 0 0 1 0 2H9a1 1 0 0 1-1-1zm0-4a1 1 0 0 1 1-1h6a1 1 0 0 1 0 2H9a1 1 0 0 1-1-1zm0 8a1 1 0 0 1 1-1h4a1 1 0 0 1 0 2H9a1 1 0 0 1-1-1z"/>
                     </svg>
                     <h1 class="welcome-title">How can I help with your budget?</h1>
-                    <p class="welcome-subtitle">I'm your personal YNAB budget assistant with full access to your financial data</p>
+                    <p class="welcome-subtitle">I'm Budgie, your friendly AI budget companion with full access to your YNAB data</p>
                     
                     <div class="example-prompts">
                         <div class="example-prompt" onclick="selectPrompt('💰 Fund upcoming bills')">
@@ -1305,27 +1622,8 @@
         }
         
         function updateChatSidebar() {
-            const chatList = document.getElementById('chat-list');
-            const chatListHeader = document.getElementById('chat-list-header');
-            
-            // Sort chats by timestamp (newest first)
-            const sortedChats = Object.values(chatSessions)
-                .sort((a, b) => b.timestamp - a.timestamp);
-            
-            if (sortedChats.length === 0) {
-                chatListHeader.style.display = 'none';
-                chatList.innerHTML = '';
-                return;
-            }
-            
-            chatListHeader.style.display = 'block';
-            
-            chatList.innerHTML = sortedChats.map(chat => `
-                <a href="#" class="chat-item ${chat.id === currentChatId ? 'active' : ''}" 
-                   onclick="loadChat('${chat.id}')">
-                    ${chat.title}
-                </a>
-            `).join('');
+            // Sidebar no longer shows chat list since chats are in their own page
+            // This function is kept for compatibility but does nothing
         }
         
         function addUserMessageToDOM(message) {
@@ -1375,25 +1673,38 @@
             console.log('Response length:', response.length, 'chars');
             console.log('Response preview:', response.substring(0, 200) + '...');
             
-            // More flexible detection for budget analysis
-            const isBudgetAnalysis = response.includes('budget') || 
-                                   response.includes('Budget') || 
-                                   response.includes('spending') || 
-                                   response.includes('over') || 
-                                   response.includes('under') ||
-                                   response.includes('categories') ||
-                                   response.includes('allocated') ||
-                                   response.includes('vs') ||
-                                   response.includes('remaining');
+            // More flexible detection for structured responses
+            const hasStructuredData = response.includes('vs budgeted') || 
+                                     response.includes('vs target') || 
+                                     response.includes('spent $') ||
+                                     response.includes('Budgeted:') || 
+                                     response.includes('Target:');
+            
+            const isTransactionList = response.includes('transactions') && 
+                                    (response.includes('Auto-Approve') || 
+                                     response.includes('unapproved') ||
+                                     response.includes('categorize') ||
+                                     response.includes('approval') ||
+                                     response.includes('Ready to approve') ||
+                                     response.includes('Need attention'));
+            
+            const isBudgetAnalysis = hasStructuredData || 
+                                   (response.includes('budget') && 
+                                    (response.includes('over') || response.includes('under')));
             
             console.log('Is budget analysis:', isBudgetAnalysis);
+            console.log('Has structured data:', hasStructuredData);
+            console.log('Is transaction list:', isTransactionList);
+            console.log('Response contains ##:', response.includes('##'));
             
-            if (isBudgetAnalysis) {
-                console.log('Using formatBudgetAnalysis');
+            if (isBudgetAnalysis && hasStructuredData) {
+                console.log('Using formatBudgetAnalysis for structured data');
                 formatBudgetAnalysis(response, messageContent);
+            } else if (isTransactionList || response.includes('##')) {
+                console.log('Using formatStructuredResponse for transactions/sections');
+                formatStructuredResponse(response, messageContent);
             } else {
                 console.log('Using regular formatting');
-                // Use enhanced formatting for all responses
                 formatRegularResponse(response, messageContent);
             }
             
@@ -1405,6 +1716,7 @@
         }
         
         function formatBudgetAnalysis(response, messageContent) {
+            console.log('Using formatBudgetAnalysis');
             const lines = response.split('\n');
             let currentSection = '';
             let i = 0;
@@ -1443,7 +1755,7 @@
                     const categoryData = parseBudgetCategory(lines, i);
                     console.log('Parsed category data:', categoryData);
                     
-                    if (categoryData && categoryData.budgeted > 0) {
+                    if (categoryData && categoryData.budgeted !== 0) {
                         console.log('Creating card for:', categoryData.name);
                         const card = createBudgetCard(categoryData, currentSection);
                         messageContent.appendChild(card);
@@ -1493,6 +1805,267 @@
             }
         }
         
+        function formatStructuredResponse(response, messageContent) {
+            const lines = response.split('\n');
+            let currentParagraph = [];
+            let i = 0;
+            
+            while (i < lines.length) {
+                const line = lines[i].trim();
+                
+                if (!line) {
+                    // Empty line - end current paragraph
+                    if (currentParagraph.length > 0) {
+                        const p = document.createElement('p');
+                        p.innerHTML = currentParagraph.join('<br>');
+                        messageContent.appendChild(p);
+                        currentParagraph = [];
+                    }
+                } else if (line.startsWith('##')) {
+                    // Markdown headers
+                    if (currentParagraph.length > 0) {
+                        const p = document.createElement('p');
+                        p.innerHTML = currentParagraph.join('<br>');
+                        messageContent.appendChild(p);
+                        currentParagraph = [];
+                    }
+                    
+                    const headerText = line.replace(/^##\s*/, '').trim();
+                    const headerDiv = document.createElement('div');
+                    headerDiv.className = 'analysis-header';
+                    headerDiv.innerHTML = headerText
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                        .replace(/`(.*?)`/g, '<code>$1</code>');
+                    messageContent.appendChild(headerDiv);
+                } else if (/^\d+\.\s/.test(line)) {
+                    // Numbered lists - create transaction cards for financial items
+                    if (currentParagraph.length > 0) {
+                        const p = document.createElement('p');
+                        p.innerHTML = currentParagraph.join('<br>');
+                        messageContent.appendChild(p);
+                        currentParagraph = [];
+                    }
+                    
+                    if (line.includes('$') && (line.includes('→') || line.includes('->'))) {
+                        // This looks like a transaction - create a card
+                        const transactionCard = createTransactionCard(line);
+                        if (transactionCard) {
+                            messageContent.appendChild(transactionCard);
+                        } else {
+                            // Fall back to regular list item
+                            const listItem = document.createElement('div');
+                            listItem.className = 'insight-item';
+                            listItem.innerHTML = line
+                                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                                .replace(/`(.*?)`/g, '<code>$1</code>');
+                            messageContent.appendChild(listItem);
+                        }
+                    } else {
+                        // Regular numbered list item
+                        const listItem = document.createElement('div');
+                        listItem.className = 'insight-item';
+                        listItem.innerHTML = line
+                            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                            .replace(/`(.*?)`/g, '<code>$1</code>');
+                        messageContent.appendChild(listItem);
+                    }
+                } else if (line.startsWith('•') || line.startsWith('-')) {
+                    // Bullet points
+                    if (currentParagraph.length > 0) {
+                        const p = document.createElement('p');
+                        p.innerHTML = currentParagraph.join('<br>');
+                        messageContent.appendChild(p);
+                        currentParagraph = [];
+                    }
+                    
+                    // Check if this bullet point is a transaction (contains $ and →)
+                    if (line.includes('$') && (line.includes('→') || line.includes('->'))) {
+                        const transactionCard = createTransactionBulletCard(line);
+                        if (transactionCard) {
+                            messageContent.appendChild(transactionCard);
+                        } else {
+                            // Fall back to regular bullet point
+                            const bulletDiv = document.createElement('div');
+                            bulletDiv.className = 'insight-item';
+                            bulletDiv.innerHTML = line
+                                .replace(/^[•-]\s*/, '• ')
+                                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                                .replace(/`(.*?)`/g, '<code>$1</code>');
+                            messageContent.appendChild(bulletDiv);
+                        }
+                    } else {
+                        // Regular bullet point
+                        const bulletDiv = document.createElement('div');
+                        bulletDiv.className = 'insight-item';
+                        bulletDiv.innerHTML = line
+                            .replace(/^[•-]\s*/, '• ')
+                            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                            .replace(/`(.*?)`/g, '<code>$1</code>');
+                        messageContent.appendChild(bulletDiv);
+                    }
+                } else if (line.endsWith(':') && line.length < 80) {
+                    // Simple headers - including ones with markdown
+                    if (currentParagraph.length > 0) {
+                        const p = document.createElement('p');
+                        p.innerHTML = currentParagraph.join('<br>');
+                        messageContent.appendChild(p);
+                        currentParagraph = [];
+                    }
+                    
+                    const headerDiv = document.createElement('div');
+                    headerDiv.className = 'analysis-header';
+                    headerDiv.innerHTML = line
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                        .replace(/`(.*?)`/g, '<code>$1</code>');
+                    messageContent.appendChild(headerDiv);
+                } else if (line.includes('balance') && line.includes('$') && (line.includes('spent') || line.includes('vs')) && line.includes(':')) {
+                    // Handle colon-separated budget lines like "Haircut: balance -$71.92 (spent $133.72 vs budgeted -$9.16)"
+                    console.log('Detected colon-format budget line:', line);
+                    if (currentParagraph.length > 0) {
+                        const p = document.createElement('p');
+                        p.innerHTML = currentParagraph.join('<br>');
+                        messageContent.appendChild(p);
+                        currentParagraph = [];
+                    }
+                    
+                    // Convert to bullet format and parse as budget category
+                    const bulletLine = '• **' + line.replace(':', '**:');
+                    console.log('Converted to bullet format:', bulletLine);
+                    const categoryData = parseBudgetCategory([bulletLine], 0);
+                    console.log('Parsed colon-format category data:', categoryData);
+                    if (categoryData && categoryData.budgeted !== 0) {
+                        console.log('Creating card for colon-format category:', categoryData.name);
+                        const card = createBudgetCard(categoryData, 'over');
+                        messageContent.appendChild(card);
+                    } else {
+                        console.log('Colon-format parsing failed, using regular line');
+                        // Fall back to regular line
+                        const formatted = line
+                            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                            .replace(/`(.*?)`/g, '<code>$1</code>');
+                        currentParagraph.push(formatted);
+                    }
+                } else {
+                    // Regular line - add to current paragraph
+                    const formatted = line
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                        .replace(/`(.*?)`/g, '<code>$1</code>');
+                    currentParagraph.push(formatted);
+                }
+                
+                i++;
+            }
+            
+            // Add any remaining paragraph
+            if (currentParagraph.length > 0) {
+                const p = document.createElement('p');
+                p.innerHTML = currentParagraph.join('<br>');
+                messageContent.appendChild(p);
+            }
+        }
+
+        function createTransactionCard(line) {
+            // Parse transaction line like: "1. **Car payment** (-$477.25) → Cars ✓ *matches your $477.25 monthly bill*"
+            const match = line.match(/^\d+\.\s*(.*?)\s*\(([+-]?\$[\d,\.]+)\)\s*→\s*(.*?)(?:\s*✓\s*(.*))?$/);
+            if (!match) return null;
+            
+            const [, rawDescription, amount, category, note] = match;
+            const isPositive = !amount.includes('-');
+            
+            // Clean up description and remove markdown formatting for display
+            const description = rawDescription.trim()
+                .replace(/\*\*(.*?)\*\*/g, '$1')
+                .replace(/\*(.*?)\*/g, '$1');
+            
+            // Clean up category and note
+            const cleanCategory = category.trim()
+                .replace(/\*\*(.*?)\*\*/g, '$1')
+                .replace(/\*(.*?)\*/g, '$1');
+            
+            const cleanNote = note ? note.trim()
+                .replace(/\*\*(.*?)\*\*/g, '$1')
+                .replace(/\*(.*?)\*/g, '$1') : null;
+            
+            const card = document.createElement('div');
+            card.className = 'budget-card';
+            card.style.marginBottom = '12px';
+            
+            card.innerHTML = `
+                <div class="budget-card-header">
+                    <div class="budget-card-title">
+                        💳 ${description}
+                    </div>
+                    <div class="budget-card-status ${isPositive ? 'amount-positive' : 'amount-negative'}">
+                        ${amount}
+                    </div>
+                </div>
+                <div class="budget-row">
+                    <span class="budget-label">Category</span>
+                    <span class="budget-amount amount-neutral">${cleanCategory}</span>
+                </div>
+                ${cleanNote ? `<div class="budget-row">
+                    <span class="budget-label">Note</span>
+                    <span class="budget-amount" style="font-size: 12px; color: var(--text-secondary);">${cleanNote}</span>
+                </div>` : ''}
+            `;
+            
+            return card;
+        }
+
+        function createTransactionBulletCard(line) {
+            // Parse bullet transaction like: "• $477.25 - Bank of America Transfer → Cars ✓"
+            const match = line.match(/^[•-]\s*\$?([\d,\.]+)\s*(?:×\s*\d+)?\s*-\s*(.*?)\s*→\s*(.*?)(?:\s*✓\s*(.*))?$/);
+            if (!match) return null;
+            
+            const [, amount, description, category, note] = match;
+            
+            // Clean up all parts and remove markdown
+            const cleanDescription = description.trim()
+                .replace(/\*\*(.*?)\*\*/g, '$1')
+                .replace(/\*(.*?)\*/g, '$1');
+            
+            const cleanCategory = category.trim()
+                .replace(/\*\*(.*?)\*\*/g, '$1')
+                .replace(/\*(.*?)\*/g, '$1');
+            
+            const cleanNote = note ? note.trim()
+                .replace(/\*\*(.*?)\*\*/g, '$1')
+                .replace(/\*(.*?)\*/g, '$1') : null;
+            
+            const card = document.createElement('div');
+            card.className = 'budget-card';
+            card.style.marginBottom = '12px';
+            
+            card.innerHTML = `
+                <div class="budget-card-header">
+                    <div class="budget-card-title">
+                        💳 ${cleanDescription}
+                    </div>
+                    <div class="budget-card-status amount-neutral">
+                        $${amount}
+                    </div>
+                </div>
+                <div class="budget-row">
+                    <span class="budget-label">Category</span>
+                    <span class="budget-amount amount-neutral">${cleanCategory}</span>
+                </div>
+                ${cleanNote ? `<div class="budget-row">
+                    <span class="budget-label">Note</span>
+                    <span class="budget-amount" style="font-size: 12px; color: var(--text-secondary);">${cleanNote}</span>
+                </div>` : ''}
+            `;
+            
+            return card;
+        }
+
         function formatRegularResponse(response, messageContent) {
             const lines = response.split('\n');
             let currentParagraph = [];
@@ -1554,6 +2127,7 @@
         
         function parseBudgetCategory(lines, startIndex) {
             const categoryLine = lines[startIndex].trim();
+            console.log('Trying to parse budget category line:', categoryLine);
             
             // Handle new format: • **Category Name**: details
             let categoryMatch = categoryLine.match(/^•\s*\*\*(.*?)\*\*:\s*(.*)/);
@@ -1562,20 +2136,36 @@
                 categoryMatch = categoryLine.match(/^([^:]+):\s*(.*)/);
             }
             
-            if (!categoryMatch) return null;
+            if (!categoryMatch) {
+                console.log('No category match found for line:', categoryLine);
+                return null;
+            }
+            
+            console.log('Category match found:', categoryMatch);
             
             const categoryName = categoryMatch[1].trim();
             const statusText = categoryMatch[2].trim();
             
             // Parse the status text for budget information
-            let budgeted = 0, spent = 0, remaining = 0;
+            let budgeted = 0, spent = 0, remaining = 0, currentBalance = null;
             
-            // Look for "spent $X vs budgeted $Y" pattern
-            const vsPattern = statusText.match(/spent \$?([\d,\.]+) vs (?:budgeted|target) \$?([\d,\.]+)/);
+            // First, look for current balance in "balance $X" or "balance -$X" format
+            const balancePattern = statusText.match(/balance \$?(-?[\d,\.]+)/);
+            console.log('Balance pattern match:', balancePattern);
+            if (balancePattern) {
+                currentBalance = parseFloat(balancePattern[1].replace(/,/g, ''));
+                console.log('Found current balance:', currentBalance);
+            }
+            
+            // Look for "spent/transferred $X vs budgeted $Y" pattern (handle negative budgeted amounts)
+            console.log('Trying to parse status text:', statusText);
+            const vsPattern = statusText.match(/(?:spent|transferred) \$?([\d,\.]+) vs (?:budgeted|target) \$?([+-]?[\d,\.]+)/);
+            console.log('vsPattern match:', vsPattern);
             if (vsPattern) {
                 spent = parseFloat(vsPattern[1].replace(/,/g, ''));
                 budgeted = parseFloat(vsPattern[2].replace(/,/g, ''));
-                remaining = budgeted - spent;
+                remaining = currentBalance !== null ? currentBalance : budgeted - spent;
+                console.log('Parsed via vsPattern - spent:', spent, 'budgeted:', budgeted, 'remaining:', remaining);
             } else {
                 // Look for remaining pattern: "$X remaining"
                 const remainingPattern = statusText.match(/\$?([\d,\.]+) remaining/);
@@ -1589,13 +2179,17 @@
                         spent = budgeted - remaining;
                     }
                 } else {
-                    // Look for over budget pattern: "-$X (spent $Y vs budgeted $Z)"
-                    const overPattern = statusText.match(/-\$?([\d,\.]+).*spent \$?([\d,\.]+) vs budgeted \$?([\d,\.]+)/);
+                    // Look for over budget pattern: "-$X (spent/transferred $Y vs budgeted $Z)"
+                    const overPattern = statusText.match(/-\$?([\d,\.]+).*(?:spent|transferred) \$?([\d,\.]+) vs budgeted \$?([+-]?[\d,\.]+)/);
+                    console.log('overPattern match:', overPattern);
                     if (overPattern) {
                         const overAmount = parseFloat(overPattern[1].replace(/,/g, ''));
                         spent = parseFloat(overPattern[2].replace(/,/g, ''));
                         budgeted = parseFloat(overPattern[3].replace(/,/g, ''));
                         remaining = -overAmount;
+                        console.log('Parsed via overPattern - spent:', spent, 'budgeted:', budgeted, 'remaining:', remaining);
+                    } else {
+                        console.log('No pattern matched for status text:', statusText);
                     }
                 }
             }
@@ -1631,20 +2225,22 @@
                     </div>
                     <div class="budget-card-status">${Math.round(data.percentage)}% spent</div>
                 </div>
+                <div class="budget-row" style="border-bottom: 2px solid var(--border); margin-bottom: 8px; padding-bottom: 8px;">
+                    <span class="budget-label" style="font-weight: 600;">Current Balance</span>
+                    <span class="budget-amount ${isOverBudget ? 'amount-negative' : 'amount-positive'}" style="font-weight: 600; font-size: 16px;">
+                        ${data.remaining < 0 ? '-' : ''}$${Math.abs(data.remaining).toLocaleString()}
+                    </span>
+                </div>
                 <div class="budget-row">
                     <span class="budget-label">Budgeted</span>
-                    <span class="budget-amount amount-neutral">$${data.budgeted.toLocaleString()}</span>
+                    <span class="budget-amount amount-neutral">$${Math.abs(data.budgeted).toLocaleString()}</span>
                 </div>
                 <div class="budget-row">
                     <span class="budget-label">Spent</span>
-                    <span class="budget-amount ${isOverBudget ? 'amount-negative' : 'amount-neutral'}">$${data.spent.toLocaleString()}</span>
-                </div>
-                <div class="budget-row">
-                    <span class="budget-label">${isOverBudget ? 'Over Budget' : 'Remaining'}</span>
-                    <span class="budget-amount ${isOverBudget ? 'amount-negative' : 'amount-positive'}">$${Math.abs(data.remaining).toLocaleString()}</span>
+                    <span class="budget-amount amount-neutral">$${data.spent.toLocaleString()}</span>
                 </div>
                 <div class="progress-bar">
-                    <div class="progress-fill" style="width: ${data.percentage}%; background: ${isOverBudget ? '#ef4444' : 'var(--accent)'}"></div>
+                    <div class="progress-fill" style="width: ${data.percentage}%; background: ${isOverBudget ? 'var(--danger)' : 'var(--success)'}"></div>
                 </div>
             `;
             
@@ -1735,6 +2331,123 @@
             submitMessage();
         });
         
+        // Navigation functions
+        function showChatView() {
+            // Update navigation
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            document.querySelectorAll('.nav-item')[0].classList.add('active');
+            
+            // Show chat view, hide history
+            document.querySelector('.chat-view').classList.add('active');
+            document.querySelector('.chat-history-page').classList.remove('active');
+            
+            // Show/hide input area
+            document.querySelector('.input-area').style.display = 'block';
+        }
+        
+        function showChatHistory() {
+            // Update navigation
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            document.querySelectorAll('.nav-item')[1].classList.add('active');
+            
+            // Show history, hide chat view
+            document.querySelector('.chat-view').classList.remove('active');
+            document.querySelector('.chat-history-page').classList.add('active');
+            
+            // Hide input area
+            document.querySelector('.input-area').style.display = 'none';
+            
+            // Populate chat history
+            populateChatHistory();
+        }
+        
+        function populateChatHistory() {
+            const chatHistoryItems = document.getElementById('chat-history-items');
+            const chatCount = document.getElementById('chat-count');
+            
+            const sortedChats = Object.values(chatSessions)
+                .sort((a, b) => b.timestamp - a.timestamp);
+                
+            chatCount.textContent = sortedChats.length;
+            
+            if (sortedChats.length === 0) {
+                chatHistoryItems.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                        <p>No chat history yet</p>
+                        <p style="margin-top: 8px; font-size: 13px;">Start a new conversation to see it here</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            chatHistoryItems.innerHTML = sortedChats.map(chat => {
+                const date = new Date(chat.timestamp);
+                const timeAgo = getTimeAgo(date);
+                
+                return `
+                    <div class="chat-history-item" onclick="loadChatFromHistory('${chat.id}')">
+                        <div class="chat-history-item-title">${chat.title}</div>
+                        <div class="chat-history-item-meta">Last message ${timeAgo}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function getTimeAgo(date) {
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / (1000 * 60));
+            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+            
+            if (diffMins < 60) {
+                return diffMins <= 1 ? '1 minute ago' : `${diffMins} minutes ago`;
+            } else if (diffHours < 24) {
+                return diffHours === 1 ? '1 hour ago' : `${diffHours} hours ago`;
+            } else if (diffDays < 7) {
+                return diffDays === 1 ? '1 day ago' : `${diffDays} days ago`;
+            } else {
+                return date.toLocaleDateString();
+            }
+        }
+        
+        function loadChatFromHistory(chatId) {
+            loadChat(chatId);
+            showChatView();
+        }
+        
+        function createNewChatFromHistory() {
+            createNewChat();
+            showChatView();
+        }
+        
+        function filterChatHistory(searchTerm) {
+            const items = document.querySelectorAll('.chat-history-item');
+            const term = searchTerm.toLowerCase();
+            
+            items.forEach(item => {
+                const title = item.querySelector('.chat-history-item-title').textContent.toLowerCase();
+                item.style.display = title.includes(term) ? 'block' : 'none';
+            });
+        }
+        
+        // Sidebar toggle functionality
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const toggleIcon = document.getElementById('toggle-icon');
+            const isCollapsed = sidebar.classList.contains('collapsed');
+            
+            if (isCollapsed) {
+                // Expand sidebar
+                sidebar.classList.remove('collapsed');
+                toggleIcon.textContent = '‹';
+            } else {
+                // Collapse sidebar
+                sidebar.classList.add('collapsed');
+                toggleIcon.textContent = '›';
+            }
+        }
+
         // Initialize app when page loads
         window.addEventListener('load', function() {
             connectWebSocket();
