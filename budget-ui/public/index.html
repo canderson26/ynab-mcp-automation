@@ -1737,60 +1737,40 @@
             console.log('Response length:', response.length, 'chars');
             console.log('Response preview:', response.substring(0, 200) + '...');
             
-            // More flexible detection for structured responses
-            const hasStructuredData = response.includes('vs budgeted') || 
-                                     response.includes('vs target') || 
-                                     response.includes('spent $') ||
-                                     response.includes('Budgeted:') || 
-                                     response.includes('Target:');
+            // Simplified detection based on CLAUDE.md standards
+            const isBudgetAnalysis = response.includes('vs budgeted') && 
+                                   response.includes('🚨 Over Budget');
             
-            const isTransactionList = response.includes('transactions') && 
-                                    (response.includes('Auto-Approve') || 
-                                     response.includes('unapproved') ||
-                                     response.includes('categorize') ||
-                                     response.includes('approval') ||
-                                     response.includes('Ready to approve') ||
-                                     response.includes('Need attention'));
+            const isTargetAmounts = response.includes('## Essential Bills') &&
+                                  response.includes('budget targets');
             
-            const isAvailableFunds = response.includes('Available Funds') ||
-                                   response.includes('Ready to Assign') ||
-                                   response.includes('available to assign') ||
-                                   response.includes('can afford');
-
-            const isTargetAmounts = (response.includes('budget targets') || 
-                                   response.includes('monthly targets') ||
-                                   response.includes('Target monthly amounts')) &&
-                                  response.includes('$') && 
-                                  response.includes('## Essential Bills');
-            
-            const isBudgetAnalysis = hasStructuredData || 
-                                   isAvailableFunds ||
-                                   (response.includes('budget') && 
-                                    (response.includes('over') || response.includes('under')));
+            const isTransactionList = response.includes('## Ready to Auto-Approve') ||
+                                    response.includes('## Need Manual Review');
             
             console.log('Is budget analysis:', isBudgetAnalysis);
-            console.log('Has structured data:', hasStructuredData);
             console.log('Is transaction list:', isTransactionList);
-            console.log('Is available funds:', isAvailableFunds);
             console.log('Is target amounts:', isTargetAmounts);
             console.log('Response contains ##:', response.includes('##'));
             
-            // For structured content (cards, tables), show immediately for better UX
-            if (isBudgetAnalysis && hasStructuredData) {
-                console.log('Using formatBudgetAnalysis for structured data');
+            // Route to appropriate formatter based on CLAUDE.md standards
+            if (isBudgetAnalysis) {
+                console.log('Using formatBudgetAnalysis for spending data');
                 formatBudgetAnalysis(response, messageContent);
                 finishResponse();
             } else if (isTargetAmounts) {
                 console.log('Using formatTargetAmounts for target amounts');
                 formatTargetAmounts(response, messageContent);
                 finishResponse();
-            } else if (isTransactionList || response.includes('##') || isAvailableFunds) {
-                console.log('Using formatStructuredResponse for transactions/sections/available funds');
+            } else if (isTransactionList) {
+                console.log('Using formatStructuredResponse for transactions');
                 formatStructuredResponse(response, messageContent);
                 finishResponse();
+            } else if (response.includes('## ')) {
+                console.log('Using formatStandardResponse for standard format');
+                formatStandardResponse(response, messageContent);
+                finishResponse();
             } else {
-                console.log('Using typewriter effect for regular response');
-                // Use typewriter effect for regular text responses
+                console.log('Using typewriter effect for simple response');
                 typeWriterText(response, messageContent, finishResponse);
             }
         }
@@ -1843,45 +1823,27 @@
         }
         
         function renderResponseContent(response, messageContent) {
-            // More flexible detection for structured responses
-            const hasStructuredData = response.includes('vs budgeted') || 
-                                     response.includes('vs target') || 
-                                     response.includes('spent $') ||
-                                     response.includes('Budgeted:') || 
-                                     response.includes('Target:');
+            // Simplified detection based on CLAUDE.md standards
+            const isBudgetAnalysis = response.includes('vs budgeted') && 
+                                   response.includes('🚨 Over Budget');
             
-            const isTransactionList = response.includes('transactions') && 
-                                    (response.includes('Auto-Approve') || 
-                                     response.includes('unapproved') ||
-                                     response.includes('categorize') ||
-                                     response.includes('approval') ||
-                                     response.includes('Ready to approve') ||
-                                     response.includes('Need attention'));
+            const isTargetAmounts = response.includes('## Essential Bills') &&
+                                  response.includes('budget targets');
             
-            const isAvailableFunds = response.includes('Available Funds') ||
-                                   response.includes('Ready to Assign') ||
-                                   response.includes('available to assign') ||
-                                   response.includes('can afford');
-
-            const isTargetAmounts = (response.includes('budget targets') || 
-                                   response.includes('monthly targets') ||
-                                   response.includes('Target monthly amounts')) &&
-                                  response.includes('$') && 
-                                  response.includes('## Essential Bills');
+            const isTransactionList = response.includes('## Ready to Auto-Approve') ||
+                                    response.includes('## Need Manual Review');
             
-            const isBudgetAnalysis = hasStructuredData || 
-                                   isAvailableFunds ||
-                                   (response.includes('budget') && 
-                                    (response.includes('over') || response.includes('under')));
-            
-            if (isBudgetAnalysis && hasStructuredData) {
+            // Route to appropriate formatter
+            if (isBudgetAnalysis) {
                 formatBudgetAnalysis(response, messageContent);
             } else if (isTargetAmounts) {
                 formatTargetAmounts(response, messageContent);
-            } else if (isTransactionList || response.includes('##') || isAvailableFunds) {
-                formatStructuredResponse(response, messageContent);
+            } else if (isTransactionList) {
+                formatStandardResponse(response, messageContent);
+            } else if (response.includes('## ')) {
+                formatStandardResponse(response, messageContent);
             } else {
-                formatRegularResponse(response, messageContent);
+                formatStandardResponse(response, messageContent);
             }
         }
         
@@ -1980,12 +1942,6 @@
             }
         }
         
-        function formatStructuredResponse(response, messageContent) {
-            const lines = response.split('\n');
-            let currentParagraph = [];
-            let i = 0;
-            
-            while (i < lines.length) {
                 const line = lines[i].trim();
                 
                 if (!line) {
@@ -2241,9 +2197,8 @@
             return card;
         }
 
-        function formatRegularResponse(response, messageContent) {
-            // Since responses now follow CLAUDE.md formatting standards, 
-            // we can use simpler parsing for consistent structure
+        function formatStandardResponse(response, messageContent) {
+            // Handles all standard CLAUDE.md format responses with ## headers and bullet points
             const lines = response.split('\n');
             let currentParagraph = [];
             
@@ -2267,14 +2222,33 @@
                         currentParagraph = [];
                     }
                     
-                    const bulletDiv = document.createElement('div');
-                    bulletDiv.className = 'insight-item';
-                    bulletDiv.innerHTML = line
-                        .replace(/^[•-]\s*/, '• ')
-                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                        .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                        .replace(/`(.*?)`/g, '<code>$1</code>');
-                    messageContent.appendChild(bulletDiv);
+                    // Check if this is a transaction (contains $ and →)
+                    if (line.includes('$') && (line.includes('→') || line.includes('->'))) {
+                        const transactionCard = createTransactionBulletCard(line);
+                        if (transactionCard) {
+                            messageContent.appendChild(transactionCard);
+                        } else {
+                            // Fall back to regular bullet point
+                            const bulletDiv = document.createElement('div');
+                            bulletDiv.className = 'insight-item';
+                            bulletDiv.innerHTML = line
+                                .replace(/^[•-]\s*/, '• ')
+                                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                                .replace(/`(.*?)`/g, '<code>$1</code>');
+                            messageContent.appendChild(bulletDiv);
+                        }
+                    } else {
+                        // Regular bullet point
+                        const bulletDiv = document.createElement('div');
+                        bulletDiv.className = 'insight-item';
+                        bulletDiv.innerHTML = line
+                            .replace(/^[•-]\s*/, '• ')
+                            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                            .replace(/`(.*?)`/g, '<code>$1</code>');
+                        messageContent.appendChild(bulletDiv);
+                    }
                 } else if (line.startsWith('## ')) {
                     // Standard header format from CLAUDE.md: ## Section Name
                     if (currentParagraph.length > 0) {
