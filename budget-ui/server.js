@@ -5,6 +5,8 @@
  * Connects beautiful web UI to Claude Code running locally
  */
 
+require('dotenv').config();
+
 const express = require('express');
 const WebSocket = require('ws');
 const http = require('http');
@@ -17,8 +19,114 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
+// Environment configuration
 const PORT = process.env.PORT || 3000;
-const CLAUDE_WORKSPACE = '/Users/charlie/claude-budget-workspace';
+const CLAUDE_WORKSPACE = process.env.CLAUDE_WORKSPACE || '/Users/charlie/claude-budget-workspace';
+const CLAUDE_TIMEOUT = parseInt(process.env.CLAUDE_TIMEOUT) || 120000;
+const NODE_ENV = process.env.NODE_ENV || 'development';
+const LOG_LEVEL = process.env.LOG_LEVEL || 'info';
+
+// Error types and user-friendly messages
+const ErrorTypes = {
+    CLAUDE_UNAVAILABLE: 'claude_unavailable',
+    TIMEOUT: 'timeout', 
+    PROCESS_ERROR: 'process_error',
+    WORKSPACE_ERROR: 'workspace_error',
+    NETWORK_ERROR: 'network_error',
+    UNKNOWN: 'unknown'
+};
+
+const ErrorMessages = {
+    [ErrorTypes.CLAUDE_UNAVAILABLE]: {
+        title: 'Claude Code Unavailable',
+        message: 'Claude Code is not available. Please ensure it\'s installed and accessible.',
+        userAction: 'Try refreshing the page or contact support if the issue persists.'
+    },
+    [ErrorTypes.TIMEOUT]: {
+        title: 'Request Timeout',
+        message: 'Your request took longer than expected to process.',
+        userAction: 'Please try asking a simpler question or try again later.'
+    },
+    [ErrorTypes.PROCESS_ERROR]: {
+        title: 'Processing Error',
+        message: 'There was an error processing your request.',
+        userAction: 'Please try rephrasing your question or try again.'
+    },
+    [ErrorTypes.WORKSPACE_ERROR]: {
+        title: 'Configuration Error',
+        message: 'Budget workspace configuration is incorrect.',
+        userAction: 'Please contact support for assistance.'
+    },
+    [ErrorTypes.NETWORK_ERROR]: {
+        title: 'Connection Error',
+        message: 'Unable to connect to the budget service.',
+        userAction: 'Please check your connection and try again.'
+    },
+    [ErrorTypes.UNKNOWN]: {
+        title: 'Unexpected Error',
+        message: 'An unexpected error occurred.',
+        userAction: 'Please try again or contact support if the issue persists.'
+    }
+};
+
+// Enhanced logging function
+function logError(errorType, details, context = {}) {
+    const timestamp = new Date().toISOString();
+    const logEntry = {
+        timestamp,
+        level: 'ERROR',
+        type: errorType,
+        details,
+        context,
+        environment: NODE_ENV
+    };
+    
+    if (LOG_LEVEL === 'debug' || NODE_ENV === 'development') {
+        console.error(JSON.stringify(logEntry, null, 2));
+    } else {
+        console.error(`[${timestamp}] ERROR: ${errorType} - ${details}`);
+    }
+}
+
+// Format error for client
+function formatErrorForClient(errorType, additionalContext = {}) {
+    const errorInfo = ErrorMessages[errorType] || ErrorMessages[ErrorTypes.UNKNOWN];
+    return {
+        type: 'error',
+        errorType,
+        ...errorInfo,
+        timestamp: new Date().toISOString(),
+        context: additionalContext
+    };
+}
+
+// Validate required environment variables
+if (!fs.existsSync(CLAUDE_WORKSPACE)) {
+    logError(ErrorTypes.WORKSPACE_ERROR, `Workspace directory not found: ${CLAUDE_WORKSPACE}`);
+    console.error('Please set CLAUDE_WORKSPACE environment variable to a valid directory');
+    process.exit(1);
+}
+
+// Input validation and sanitization middleware
+function validateInput(input) {
+    if (typeof input !== 'string') {
+        return null;
+    }
+    
+    // Basic validation
+    if (input.length > 2000) {
+        return null; // Too long
+    }
+    
+    // Remove dangerous patterns
+    const sanitized = input
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+        .replace(/javascript:/gi, '')
+        .replace(/on\w+\s*=/gi, '')
+        .trim();
+    
+    return sanitized;
+}
 
 // Serve static files (our beautiful UI)
 app.use(express.static('public'));
@@ -54,12 +162,15 @@ class ClaudeCodeManager {
                 this.isReady = true;
                 console.log('✅ Claude Code is ready');
             } else {
-                console.error('❌ Claude Code test failed');
+                logError(ErrorTypes.CLAUDE_UNAVAILABLE, 'Claude Code test failed', { exitCode: code });
             }
         });
 
         testProcess.on('error', (error) => {
-            console.error('❌ Claude Code not available:', error.message);
+            logError(ErrorTypes.CLAUDE_UNAVAILABLE, 'Claude Code not available', { 
+                error: error.message,
+                code: error.code 
+            });
         });
     }
 
@@ -82,9 +193,22 @@ class ClaudeCodeManager {
 
         // Set a timeout for the process
         processTimeout = setTimeout(() => {
-            console.log('Claude Code process timeout, killing...');
+            logError(ErrorTypes.TIMEOUT, 'Claude Code process timeout', { 
+                timeout: CLAUDE_TIMEOUT,
+                retryCount 
+            });
             claudeProcess.kill('SIGTERM');
-        }, 30000); // 30 second timeout
+            
+            // Send timeout error to client
+            wss.clients.forEach(client => {
+                if (client.readyState === WebSocket.OPEN) {
+                    client.send(JSON.stringify(formatErrorForClient(ErrorTypes.TIMEOUT, {
+                        retryCount,
+                        canRetry: retryCount < 2
+                    })));
+                }
+            });
+        }, CLAUDE_TIMEOUT);
 
         claudeProcess.stdout.on('data', (data) => {
             response += data.toString();
@@ -110,7 +234,11 @@ class ClaudeCodeManager {
                                    (code !== 0 && response.trim().length < 100);
             
             if (isExecutionError && retryCount < 2) {
-                console.log(`Execution error detected, retrying... (attempt ${retryCount + 1})`);
+                logError(ErrorTypes.PROCESS_ERROR, 'Execution error detected, retrying', { 
+                    attempt: retryCount + 1,
+                    responseLength: response.length,
+                    exitCode: code
+                });
                 setTimeout(() => {
                     this.sendMessage(message, retryCount + 1);
                 }, 1000); // Wait 1 second before retry
@@ -118,21 +246,34 @@ class ClaudeCodeManager {
             }
 
             if (code !== 0) {
-                console.error(`Claude Code exited with non-zero code: ${code}`);
-                console.error('Error output:', errorOutput);
+                logError(ErrorTypes.PROCESS_ERROR, 'Claude Code exited with non-zero code', {
+                    exitCode: code,
+                    errorOutput: errorOutput.substring(0, 500), // Limit error output size
+                    responseLength: response.length
+                });
             }
             
             if (response.length < 100) {
-                console.log('Short response content:', JSON.stringify(response));
-                console.log('Raw response:', response);
-                console.log('Error output:', errorOutput);
+                logError(ErrorTypes.PROCESS_ERROR, 'Short response received', {
+                    responseLength: response.length,
+                    response: response.substring(0, 200),
+                    errorOutput: errorOutput.substring(0, 200)
+                });
             }
             
             console.log('First 200 chars of response:', response.substring(0, 200));
             
-            // If still getting execution error after retries, send a helpful message
-            if (response.trim() === 'Execution error') {
-                response = 'I encountered an issue processing your request. Please try again or rephrase your question.';
+            // If still getting execution error after retries, send structured error
+            if (response.trim() === 'Execution error' || (response.trim().length < 50 && retryCount >= 2)) {
+                wss.clients.forEach(client => {
+                    if (client.readyState === WebSocket.OPEN) {
+                        client.send(JSON.stringify(formatErrorForClient(ErrorTypes.PROCESS_ERROR, {
+                            retriesExhausted: true,
+                            originalResponse: response.trim()
+                        })));
+                    }
+                });
+                return;
             }
             
             // Broadcast to all connected clients
@@ -152,24 +293,27 @@ class ClaudeCodeManager {
                 processTimeout = null;
             }
 
-            console.error('Claude Code process error:', error);
+            logError(ErrorTypes.PROCESS_ERROR, 'Claude Code process error', {
+                error: error.message,
+                code: error.code,
+                retryCount
+            });
             
             // Retry on process errors too
             if (retryCount < 2) {
-                console.log(`Process error, retrying... (attempt ${retryCount + 1})`);
                 setTimeout(() => {
                     this.sendMessage(message, retryCount + 1);
                 }, 1000);
                 return;
             }
             
-            // Send error message to client
+            // Send structured error message to client after exhausting retries
             wss.clients.forEach(client => {
                 if (client.readyState === WebSocket.OPEN) {
-                    client.send(JSON.stringify({
-                        type: 'claude_response',
-                        data: 'Sorry, there was an error processing your request. Please try again.'
-                    }));
+                    client.send(JSON.stringify(formatErrorForClient(ErrorTypes.PROCESS_ERROR, {
+                        retriesExhausted: true,
+                        errorCode: error.code
+                    })));
                 }
             });
         });
@@ -179,12 +323,25 @@ class ClaudeCodeManager {
             claudeProcess.stdin.write(message);
             claudeProcess.stdin.end();
         } catch (writeError) {
-            console.error('Failed to write to Claude process:', writeError);
+            logError(ErrorTypes.PROCESS_ERROR, 'Failed to write to Claude process', {
+                error: writeError.message,
+                retryCount
+            });
             
             if (processTimeout) {
                 clearTimeout(processTimeout);
                 processTimeout = null;
             }
+            
+            // Send error to client
+            wss.clients.forEach(client => {
+                if (client.readyState === WebSocket.OPEN) {
+                    client.send(JSON.stringify(formatErrorForClient(ErrorTypes.PROCESS_ERROR, {
+                        phase: 'message_write',
+                        canRetry: retryCount < 2
+                    })));
+                }
+            });
         }
     }
 
@@ -218,7 +375,16 @@ wss.on('connection', (ws) => {
 
             switch (message.type) {
                 case 'user_message':
-                    claude.sendMessage(message.data);
+                    // Validate and sanitize user input
+                    const sanitizedMessage = validateInput(message.data);
+                    if (!sanitizedMessage) {
+                        ws.send(JSON.stringify(formatErrorForClient(ErrorTypes.PROCESS_ERROR, {
+                            phase: 'input_validation',
+                            reason: 'Invalid or malicious input detected'
+                        })));
+                        return;
+                    }
+                    claude.sendMessage(sanitizedMessage);
                     break;
                     
                 case 'ping':
@@ -229,7 +395,14 @@ wss.on('connection', (ws) => {
                     console.log('Unknown message type:', message.type);
             }
         } catch (error) {
-            console.error('Error processing message:', error);
+            logError(ErrorTypes.UNKNOWN, 'Error processing WebSocket message', {
+                error: error.message,
+                messageType: message.type
+            });
+            
+            ws.send(JSON.stringify(formatErrorForClient(ErrorTypes.UNKNOWN, {
+                phase: 'message_processing'
+            })));
         }
     });
 
@@ -238,7 +411,10 @@ wss.on('connection', (ws) => {
     });
 
     ws.on('error', (error) => {
-        console.error('WebSocket error:', error);
+        logError(ErrorTypes.NETWORK_ERROR, 'WebSocket error', {
+            error: error.message,
+            code: error.code
+        });
     });
 });
 

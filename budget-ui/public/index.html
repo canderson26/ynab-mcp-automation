@@ -463,6 +463,108 @@
             50% { opacity: 1; }
         }
         
+        /* Error message styles */
+        .message-group.error {
+            border-left: 3px solid var(--danger);
+        }
+        
+        .error-message {
+            background: rgba(220, 38, 38, 0.1);
+            border: 1px solid rgba(220, 38, 38, 0.3);
+            border-radius: 8px;
+        }
+        
+        .error-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            color: var(--danger);
+            margin-bottom: 8px;
+            font-size: 15px;
+        }
+        
+        .error-icon {
+            font-size: 16px;
+        }
+        
+        .error-text {
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+        
+        .error-action {
+            color: var(--text-secondary);
+            font-size: 13px;
+            margin-bottom: 12px;
+            font-style: italic;
+        }
+        
+        .retry-button {
+            background: var(--danger);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .retry-button:hover {
+            background: #b91c1c;
+        }
+        
+        .retry-button:active {
+            transform: translateY(1px);
+        }
+        
+        /* Accessibility helpers */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+        
+        /* Focus styles for keyboard navigation */
+        button:focus,
+        textarea:focus,
+        input:focus {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+        
+        /* Example prompt buttons (changed from divs to buttons) */
+        .example-prompt {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            text-align: left;
+            width: 100%;
+            padding: 0;
+        }
+        
+        .example-prompt:hover {
+            background: var(--bg-hover);
+        }
+        
+        .example-prompt:focus {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+            border-radius: 8px;
+        }
+        
         /* Budget data cards */
         .budget-card {
             background: var(--bg-secondary);
@@ -1141,109 +1243,109 @@
     </style>
 </head>
 <body>
-    <div class="sidebar">
-        <div class="resize-handle"></div>
+    <nav class="sidebar" role="navigation" aria-label="Budget Assistant Navigation">
+        <div class="resize-handle" aria-hidden="true"></div>
         
         <!-- Collapse/expand toggle button -->
-        <button class="toggle-sidebar" onclick="toggleSidebar()">
-            <span id="toggle-icon">‹</span>
+        <button class="toggle-sidebar" onclick="toggleSidebar()" aria-label="Toggle sidebar" aria-expanded="true">
+            <span id="toggle-icon" aria-hidden="true">‹</span>
         </button>
         
         <!-- Budget Assistant header at the very top -->
-        <div class="sidebar-top">
-            <div class="logo">
-                <span style="font-size: 20px;">🐦</span>
+        <header class="sidebar-top">
+            <div class="logo" role="banner">
+                <span style="font-size: 20px;" aria-hidden="true">🐦</span>
                 <span class="logo-text">Budgie</span>
             </div>
-            <div class="sidebar-nav">
-                <div class="nav-item active" onclick="showChatView()">
-                    <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <div class="sidebar-nav" role="tablist">
+                <button class="nav-item active" onclick="showChatView()" role="tab" aria-selected="true" aria-controls="chat-view" aria-label="Chat with Budgie">
+                    <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                     </svg>
-                </div>
-                <div class="nav-item" onclick="showChatHistory()">
-                    <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                </button>
+                <button class="nav-item" onclick="showChatHistory()" role="tab" aria-selected="false" aria-controls="chat-history" aria-label="View chat history">
+                    <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                         <polyline points="14,2 14,8 20,8"></polyline>
                         <line x1="16" y1="13" x2="8" y2="13"></line>
                         <line x1="16" y1="17" x2="8" y2="17"></line>
                         <polyline points="10,9 9,9 8,9"></polyline>
                     </svg>
-                </div>
-                <div class="nav-item" onclick="createNewChat()">
-                    <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                </button>
+                <button class="nav-item" onclick="createNewChat()" role="tab" aria-selected="false" aria-label="Start new chat">
+                    <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                         <path d="M12 5v14m7-7H5"/>
                     </svg>
-                </div>
+                </button>
             </div>
-        </div>
+        </header>
         
         <div class="sidebar-content">
             <!-- Quick Actions Section -->
-            <div class="sidebar-actions">
-                <div class="sidebar-actions-header">
-                    ⚡ Quick Actions
-                </div>
-                <button class="sidebar-action-btn" onclick="runAction('Fund all my upcoming bills based on due dates')">
-                    <div class="sidebar-action-icon">💰</div>
+            <section class="sidebar-actions" aria-labelledby="quick-actions-header">
+                <h2 class="sidebar-actions-header" id="quick-actions-header">
+                    <span aria-hidden="true">⚡</span> Quick Actions
+                </h2>
+                <button class="sidebar-action-btn" onclick="runAction('Fund all my upcoming bills based on due dates')" aria-label="Fund all upcoming bills based on due dates">
+                    <div class="sidebar-action-icon" aria-hidden="true">💰</div>
                     <div class="sidebar-action-text">Fund Bills</div>
                 </button>
-                <button class="sidebar-action-btn" onclick="runAction('Show me all unapproved transactions and help me categorize them')">
-                    <div class="sidebar-action-icon">🏷️</div>
+                <button class="sidebar-action-btn" onclick="runAction('Show me all unapproved transactions and help me categorize them')" aria-label="Show and categorize unapproved transactions">
+                    <div class="sidebar-action-icon" aria-hidden="true">🏷️</div>
                     <div class="sidebar-action-text">Categorize</div>
                 </button>
-                <button class="sidebar-action-btn" onclick="runAction('Analyze my spending patterns for this month and identify areas where I\'m over or under budget')">
-                    <div class="sidebar-action-icon">📊</div>
+                <button class="sidebar-action-btn" onclick="runAction('Analyze my spending patterns for this month and identify areas where I\'m over or under budget')" aria-label="Analyze spending patterns and budget performance">
+                    <div class="sidebar-action-icon" aria-hidden="true">📊</div>
                     <div class="sidebar-action-text">Analyze Spending</div>
                 </button>
-                <button class="sidebar-action-btn" onclick="runAction('Move money from dining out to groceries to cover the overage')">
-                    <div class="sidebar-action-icon">🔄</div>
+                <button class="sidebar-action-btn" onclick="runAction('Move money from dining out to groceries to cover the overage')" aria-label="Move money between categories to rebalance budget">
+                    <div class="sidebar-action-icon" aria-hidden="true">🔄</div>
                     <div class="sidebar-action-text">Rebalance</div>
                 </button>
-            </div>
+            </section>
         </div>
-    </div>
+    </nav>
     
-    <div class="main-content">
-        <div class="connection-status">
-            <div class="connection-dot"></div>
+    <main class="main-content" role="main">
+        <div class="connection-status" role="status" aria-live="polite" aria-label="Connection status">
+            <div class="connection-dot" aria-hidden="true"></div>
             <span>Budgie Online</span>
         </div>
         
         <!-- Chat View -->
-        <div class="chat-view active">
-            <div class="chat-messages">
+        <section class="chat-view active" id="chat-view" role="tabpanel" aria-labelledby="chat-tab">
+            <div class="chat-messages" role="log" aria-live="polite" aria-label="Chat conversation">
                 <!-- Welcome screen - shown when no messages -->
                 <div class="welcome-screen">
-                    <div class="claude-logo-large">🐦</div>
+                    <div class="claude-logo-large" aria-hidden="true">🐦</div>
                     <h1 class="welcome-title">How can I help with your budget?</h1>
                     <p class="welcome-subtitle">I'm Budgie, your friendly AI budget companion with full access to your YNAB data</p>
                     
-                    <div class="example-prompts">
-                        <div class="example-prompt" onclick="selectPrompt('💰 Fund upcoming bills')">
-                            <div class="example-prompt-title">💰 Fund upcoming bills</div>
+                    <div class="example-prompts" role="list" aria-label="Example prompts">
+                        <button class="example-prompt" onclick="selectPrompt('💰 Fund upcoming bills')" role="listitem" aria-label="Fund upcoming bills">
+                            <div class="example-prompt-title"><span aria-hidden="true">💰</span> Fund upcoming bills</div>
                             <div class="example-prompt-desc">Automatically allocate money to bills due this month</div>
-                        </div>
-                        <div class="example-prompt" onclick="selectPrompt('📊 Check category balances')">
-                            <div class="example-prompt-title">📊 Check category balances</div>
+                        </button>
+                        <button class="example-prompt" onclick="selectPrompt('📊 Check category balances')" role="listitem" aria-label="Check category balances">
+                            <div class="example-prompt-title"><span aria-hidden="true">📊</span> Check category balances</div>
                             <div class="example-prompt-desc">Review spending and available funds by category</div>
-                        </div>
-                        <div class="example-prompt" onclick="selectPrompt('🏷️ Show me all unapproved transactions and help me categorize them')">
-                            <div class="example-prompt-title">🏷️ Categorize transactions</div>
+                        </button>
+                        <button class="example-prompt" onclick="selectPrompt('🏷️ Show me all unapproved transactions and help me categorize them')" role="listitem" aria-label="Categorize transactions">
+                            <div class="example-prompt-title"><span aria-hidden="true">🏷️</span> Categorize transactions</div>
                             <div class="example-prompt-desc">Review and approve recent uncategorized transactions</div>
-                        </div>
-                        <div class="example-prompt" onclick="selectPrompt('🔄 Move money between categories to rebalance my budget')">
-                            <div class="example-prompt-title">🔄 Move money between categories</div>
+                        </button>
+                        <button class="example-prompt" onclick="selectPrompt('🔄 Move money between categories to rebalance my budget')" role="listitem" aria-label="Move money between categories">
+                            <div class="example-prompt-title"><span aria-hidden="true">🔄</span> Move money between categories</div>
                             <div class="example-prompt-desc">Transfer funds to cover overspending or new purchases</div>
-                        </div>
-                        <div class="example-prompt" onclick="selectPrompt('📈 Show my spending trends and budget performance')">
-                            <div class="example-prompt-title">📈 Show spending trends</div>
+                        </button>
+                        <button class="example-prompt" onclick="selectPrompt('📈 Show my spending trends and budget performance')" role="listitem" aria-label="Show spending trends">
+                            <div class="example-prompt-title"><span aria-hidden="true">📈</span> Show spending trends</div>
                             <div class="example-prompt-desc">Analyze spending patterns and budget performance</div>
-                        </div>
+                        </button>
                     </div>
                 </div>
             </div>
-        </div>
+        </section>
         
         <!-- Chat History Page -->
         <div class="chat-history-page">
@@ -1276,27 +1378,38 @@
             </div>
         </div>
         
-        <div class="input-area">
+        <form class="input-area" onsubmit="submitMessage(); return false;" role="search" aria-label="Chat with Budgie">
             <div class="input-container">
                 <div class="input-wrapper">
-                    <textarea class="input-field" placeholder="Ask about your budget..." rows="1"></textarea>
+                    <label for="chat-input" class="sr-only">Ask about your budget</label>
+                    <textarea 
+                        id="chat-input"
+                        class="input-field" 
+                        placeholder="Ask about your budget..." 
+                        rows="1"
+                        aria-label="Type your budget question here"
+                        aria-describedby="input-help"
+                    ></textarea>
+                    <div id="input-help" class="sr-only">
+                        Press Enter to send, Shift+Enter for new line
+                    </div>
                     <div class="input-actions">
-                        <button class="clear-chat-btn" onclick="clearCurrentChat()" title="Clear all chat history">
-                            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <button type="button" class="clear-chat-btn" onclick="clearCurrentChat()" aria-label="Clear all chat history">
+                            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                                 <path d="M3 6h18"></path>
                                 <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
                                 <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
                             </svg>
                         </button>
-                        <button class="send-btn">
-                            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <button type="submit" class="send-btn" aria-label="Send message">
+                            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                                 <path d="m5 12 7-7v4l7 3-7 3v4l-7-7Z"/>
                             </svg>
                         </button>
                     </div>
                 </div>
             </div>
-        </div>
+        </form>
     </div>
     
     <script>
@@ -1358,9 +1471,85 @@
                     }
                     break;
                     
+                case 'error':
+                    handleErrorMessage(message);
+                    break;
+                    
                 default:
                     console.log('Unknown message type:', message.type);
             }
+        }
+
+        function handleErrorMessage(errorMessage) {
+            // Hide typing indicator
+            hideTypingIndicator();
+            
+            // Create error display element
+            const chatMessages = document.querySelector('.chat-messages');
+            const errorGroup = document.createElement('div');
+            errorGroup.className = 'message-group assistant error';
+            
+            const roleLabel = document.createElement('div');
+            roleLabel.className = 'message-role';
+            roleLabel.textContent = 'Budgie';
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message error-message';
+            
+            const messageContent = document.createElement('div');
+            messageContent.className = 'message-content';
+            
+            // Create error content
+            const errorTitle = document.createElement('div');
+            errorTitle.className = 'error-title';
+            errorTitle.innerHTML = `<span class="error-icon">⚠️</span> ${escapeHtml(errorMessage.title)}`;
+            
+            const errorText = document.createElement('div');
+            errorText.className = 'error-text';
+            errorText.textContent = errorMessage.message;
+            
+            const errorAction = document.createElement('div');
+            errorAction.className = 'error-action';
+            errorAction.textContent = errorMessage.userAction;
+            
+            messageContent.appendChild(errorTitle);
+            messageContent.appendChild(errorText);
+            messageContent.appendChild(errorAction);
+            
+            // Add retry button for certain error types
+            if (errorMessage.context && errorMessage.context.canRetry) {
+                const retryButton = document.createElement('button');
+                retryButton.className = 'retry-button';
+                retryButton.innerHTML = '🔄 Try Again';
+                retryButton.onclick = function() {
+                    // Resend the last user message
+                    if (currentMessages.length > 0) {
+                        const lastUserMessage = [...currentMessages].reverse().find(msg => msg.role === 'user');
+                        if (lastUserMessage) {
+                            sendMessage(lastUserMessage.content);
+                        }
+                    }
+                };
+                messageContent.appendChild(retryButton);
+            }
+            
+            messageDiv.appendChild(messageContent);
+            errorGroup.appendChild(roleLabel);
+            errorGroup.appendChild(messageDiv);
+            chatMessages.appendChild(errorGroup);
+            
+            // Add error message to chat history
+            if (currentChatId) {
+                currentMessages.push({
+                    role: 'assistant',
+                    content: `Error: ${errorMessage.title} - ${errorMessage.message}`,
+                    timestamp: Date.now(),
+                    isError: true
+                });
+                saveCurrentChat();
+            }
+            
+            scrollToBottom();
         }
         
         function addClaudeResponse(response) {
@@ -1392,6 +1581,85 @@
                 statusElement.textContent = status;
             }
         }
+
+        // Input sanitization function
+        function sanitizeInput(input) {
+            if (typeof input !== 'string') {
+                return '';
+            }
+            
+            // Remove any potentially harmful characters and scripts
+            return input
+                .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // Remove script tags
+                .replace(/<[^>]*>/g, '') // Remove HTML tags
+                .replace(/javascript:/gi, '') // Remove javascript: protocols
+                .replace(/on\w+\s*=/gi, '') // Remove event handlers
+                .trim()
+                .substring(0, 2000); // Limit length to prevent DoS
+        }
+
+        // XSS protection for display content
+        function escapeHtml(unsafe) {
+            if (typeof unsafe !== 'string') {
+                return '';
+            }
+            
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Safe markdown processing with XSS protection
+        function processMarkdownSafe(text) {
+            if (typeof text !== 'string') {
+                return '';
+            }
+            
+            // First escape HTML to prevent XSS
+            const escaped = escapeHtml(text);
+            
+            // Then apply safe markdown formatting
+            return escaped
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/`(.*?)`/g, '<code>$1</code>');
+        }
+
+        // Safe innerHTML setter
+        function setInnerHTMLSafe(element, content) {
+            if (!element) return;
+            
+            // If content contains user input, escape it first
+            if (typeof content === 'string' && content.includes('$')) {
+                // This might contain user financial data, process safely
+                element.innerHTML = processMarkdownSafe(content);
+            } else {
+                // Static content, safe to use directly
+                element.innerHTML = content;
+            }
+        }
+
+        // Safe message sending function
+        function sendMessage(message) {
+            if (!message || typeof message !== 'string') {
+                return;
+            }
+            
+            const sanitizedMessage = sanitizeInput(message);
+            if (!sanitizedMessage) {
+                console.warn('Empty or invalid message after sanitization');
+                return;
+            }
+            
+            if (isConnected) {
+                runAction(sanitizedMessage);
+            } else {
+                console.warn('Not connected to server');
+            }
+        }
         
         function runAction(prompt) {
             if (isConnected) {
@@ -1419,8 +1687,15 @@
             const message = inputField.value.trim();
             
             if (message && isConnected) {
+                // Sanitize the input
+                const sanitizedMessage = sanitizeInput(message);
+                if (!sanitizedMessage) {
+                    console.warn('Message rejected due to invalid content');
+                    return;
+                }
+                
                 // Add user message to chat
-                addUserMessage(message);
+                addUserMessage(sanitizedMessage);
                 
                 // Show typing indicator
                 showTypingIndicator();
@@ -1428,7 +1703,7 @@
                 // Send to Claude Code via WebSocket
                 ws.send(JSON.stringify({
                     type: 'user_message',
-                    data: message
+                    data: sanitizedMessage
                 }));
                 
                 // Clear the input
@@ -2310,6 +2585,9 @@
             
             // Show/hide input area
             document.querySelector('.input-area').style.display = 'block';
+            
+            // Update accessibility
+            updateTabNavigation('chat-view');
         }
         
         function showChatHistory() {
@@ -2323,6 +2601,9 @@
             
             // Hide input area
             document.querySelector('.input-area').style.display = 'none';
+            
+            // Update accessibility
+            updateTabNavigation('chat-history');
             
             // Populate chat history
             populateChatHistory();
@@ -2402,16 +2683,80 @@
         function toggleSidebar() {
             const sidebar = document.querySelector('.sidebar');
             const toggleIcon = document.getElementById('toggle-icon');
+            const toggleButton = document.querySelector('.toggle-sidebar');
             const isCollapsed = sidebar.classList.contains('collapsed');
             
             if (isCollapsed) {
                 // Expand sidebar
                 sidebar.classList.remove('collapsed');
                 toggleIcon.textContent = '‹';
+                toggleButton.setAttribute('aria-expanded', 'true');
+                toggleButton.setAttribute('aria-label', 'Collapse sidebar');
             } else {
                 // Collapse sidebar
                 sidebar.classList.add('collapsed');
                 toggleIcon.textContent = '›';
+                toggleButton.setAttribute('aria-expanded', 'false');
+                toggleButton.setAttribute('aria-label', 'Expand sidebar');
+            }
+        }
+
+        // Keyboard navigation support
+        document.addEventListener('keydown', function(e) {
+            // Escape key to close/expand sidebar
+            if (e.key === 'Escape') {
+                const sidebar = document.querySelector('.sidebar');
+                if (!sidebar.classList.contains('collapsed')) {
+                    toggleSidebar();
+                }
+            }
+            
+            // Tab navigation improvements for chat messages
+            if (e.key === 'Tab') {
+                const activeElement = document.activeElement;
+                const focusableElements = document.querySelectorAll(
+                    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+                );
+                
+                // Improve focus management for dynamically added content
+                if (activeElement && activeElement.closest('.chat-messages')) {
+                    // Enhanced tab navigation within chat area
+                    const chatFocusable = Array.from(focusableElements).filter(el => 
+                        el.closest('.chat-messages')
+                    );
+                    
+                    if (chatFocusable.length > 0) {
+                        const currentIndex = chatFocusable.indexOf(activeElement);
+                        if (e.shiftKey) {
+                            // Previous element
+                            if (currentIndex > 0) {
+                                e.preventDefault();
+                                chatFocusable[currentIndex - 1].focus();
+                            }
+                        } else {
+                            // Next element
+                            if (currentIndex >= 0 && currentIndex < chatFocusable.length - 1) {
+                                e.preventDefault();
+                                chatFocusable[currentIndex + 1].focus();
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Update tab navigation when views change
+        function updateTabNavigation(activeView) {
+            const tabs = document.querySelectorAll('[role="tab"]');
+            tabs.forEach(tab => {
+                tab.setAttribute('aria-selected', 'false');
+                tab.setAttribute('tabindex', '-1');
+            });
+            
+            const activeTab = document.querySelector(`[aria-controls="${activeView}"]`);
+            if (activeTab) {
+                activeTab.setAttribute('aria-selected', 'true');
+                activeTab.setAttribute('tabindex', '0');
             }
         }
         

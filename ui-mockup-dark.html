@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Budget Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #0e0e0e;
+            color: #e3e3e3;
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            background: #171717;
+            border-right: 1px solid #2a2a2a;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid #2a2a2a;
+        }
+        
+        .new-chat-btn {
+            width: 100%;
+            padding: 12px;
+            background: #0e0e0e;
+            border: 1px solid #2a2a2a;
+            border-radius: 8px;
+            color: #e3e3e3;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+        
+        .new-chat-btn:hover {
+            background: #1a1a1a;
+            border-color: #3a3a3a;
+        }
+        
+        .chat-history {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+        
+        .chat-item {
+            padding: 12px;
+            margin-bottom: 4px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #a3a3a3;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            transition: all 0.2s;
+        }
+        
+        .chat-item:hover {
+            background: #1a1a1a;
+            color: #e3e3e3;
+        }
+        
+        .chat-item.active {
+            background: #2a2a2a;
+            color: #e3e3e3;
+        }
+        
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 40px 0;
+        }
+        
+        .chat-wrapper {
+            max-width: 740px;
+            margin: 0 auto;
+            padding: 0 40px;
+        }
+        
+        .message {
+            margin-bottom: 24px;
+            display: flex;
+            gap: 16px;
+        }
+        
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+        
+        .user-avatar {
+            background: #6366f1;
+            color: white;
+        }
+        
+        .assistant-avatar {
+            background: #2a2a2a;
+            color: #e3e3e3;
+            font-size: 20px;
+        }
+        
+        .message-content {
+            flex: 1;
+            line-height: 1.6;
+            font-size: 15px;
+        }
+        
+        .message-content p {
+            margin-bottom: 12px;
+        }
+        
+        .message-content p:last-child {
+            margin-bottom: 0;
+        }
+        
+        /* Tool calls */
+        .tool-use {
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin: 12px 0;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 13px;
+            color: #a3a3a3;
+        }
+        
+        .tool-use-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #e3e3e3;
+            margin-bottom: 4px;
+        }
+        
+        /* Code blocks */
+        .code-block {
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 12px 0;
+            overflow-x: auto;
+        }
+        
+        .code-block pre {
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 13px;
+            color: #e3e3e3;
+        }
+        
+        /* Budget widgets */
+        .budget-card {
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 12px 0;
+        }
+        
+        .budget-card-header {
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #e3e3e3;
+        }
+        
+        .budget-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            font-size: 14px;
+        }
+        
+        .budget-label {
+            color: #a3a3a3;
+        }
+        
+        .budget-amount {
+            font-weight: 500;
+        }
+        
+        .amount-positive { color: #10b981; }
+        .amount-negative { color: #ef4444; }
+        
+        /* Input area */
+        .input-container {
+            border-top: 1px solid #2a2a2a;
+            padding: 20px 0;
+        }
+        
+        .input-wrapper {
+            max-width: 740px;
+            margin: 0 auto;
+            padding: 0 40px;
+            position: relative;
+        }
+        
+        .input-field {
+            width: 100%;
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 12px;
+            padding: 16px 50px 16px 16px;
+            color: #e3e3e3;
+            font-size: 15px;
+            line-height: 1.5;
+            resize: none;
+            outline: none;
+            transition: all 0.2s;
+            min-height: 56px;
+            max-height: 200px;
+        }
+        
+        .input-field:focus {
+            border-color: #3a3a3a;
+            background: #1f1f1f;
+        }
+        
+        .input-field::placeholder {
+            color: #6a6a6a;
+        }
+        
+        .send-button {
+            position: absolute;
+            right: 48px;
+            bottom: 8px;
+            width: 32px;
+            height: 32px;
+            background: #6366f1;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            opacity: 0.5;
+        }
+        
+        .send-button:hover {
+            opacity: 0.8;
+        }
+        
+        .send-button.active {
+            opacity: 1;
+        }
+        
+        .send-icon {
+            width: 16px;
+            height: 16px;
+        }
+        
+        /* Quick actions */
+        .quick-actions {
+            padding: 16px 0;
+            border-bottom: 1px solid #2a2a2a;
+        }
+        
+        .quick-actions-wrapper {
+            max-width: 740px;
+            margin: 0 auto;
+            padding: 0 40px;
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+        
+        .quick-actions-wrapper::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .quick-action {
+            padding: 8px 14px;
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 20px;
+            color: #e3e3e3;
+            font-size: 13px;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .quick-action:hover {
+            background: #2a2a2a;
+            border-color: #3a3a3a;
+        }
+        
+        /* Typing indicator */
+        .typing-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 0;
+        }
+        
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            background: #6a6a6a;
+            border-radius: 50%;
+            animation: pulse 1.4s infinite;
+        }
+        
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        
+        @keyframes pulse {
+            0%, 60%, 100% { opacity: 0.3; transform: scale(1); }
+            30% { opacity: 1; transform: scale(1.2); }
+        }
+        
+        /* Mobile */
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .chat-wrapper { padding: 0 20px; }
+            .input-wrapper { padding: 0 20px; }
+            .quick-actions-wrapper { padding: 0 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <button class="new-chat-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                New chat
+            </button>
+        </div>
+        <div class="chat-history">
+            <div class="chat-item active">Current Budget Review</div>
+            <div class="chat-item">July Bill Planning</div>
+            <div class="chat-item">Grocery overspending analysis</div>
+            <div class="chat-item">Emergency fund progress</div>
+            <div class="chat-item">Vacation budget planning</div>
+        </div>
+    </div>
+    
+    <div class="main-content">
+        <div class="quick-actions">
+            <div class="quick-actions-wrapper">
+                <button class="quick-action">Fund upcoming bills</button>
+                <button class="quick-action">Check category balances</button>
+                <button class="quick-action">Categorize transactions</button>
+                <button class="quick-action">What can I afford?</button>
+                <button class="quick-action">Monthly summary</button>
+                <button class="quick-action">Recent transactions</button>
+                <button class="quick-action">Budget vs actual</button>
+            </div>
+        </div>
+        
+        <div class="chat-container">
+            <div class="chat-wrapper">
+                <div class="message">
+                    <div class="avatar assistant-avatar">💰</div>
+                    <div class="message-content">
+                        <p>Welcome to your Budget Assistant! I have full access to your YNAB data and can help you manage your finances effectively.</p>
+                        <p>I can categorize transactions, move money between categories, analyze spending patterns, and answer any questions about your budget. What would you like to know?</p>
+                    </div>
+                </div>
+                
+                <div class="message">
+                    <div class="avatar user-avatar">CA</div>
+                    <div class="message-content">
+                        <p>How's my grocery budget looking this month? And show me recent transactions</p>
+                    </div>
+                </div>
+                
+                <div class="message">
+                    <div class="avatar assistant-avatar">💰</div>
+                    <div class="message-content">
+                        <p>Let me check your grocery budget and recent transactions.</p>
+                        
+                        <div class="tool-use">
+                            <div class="tool-use-header">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+                                </svg>
+                                Using ynab.getCategories
+                            </div>
+                            Fetching current category balances...
+                        </div>
+                        
+                        <div class="budget-card">
+                            <div class="budget-card-header">Groceries - July 2025</div>
+                            <div class="budget-row">
+                                <span class="budget-label">Budgeted</span>
+                                <span class="budget-amount">$1,200.00</span>
+                            </div>
+                            <div class="budget-row">
+                                <span class="budget-label">Activity</span>
+                                <span class="budget-amount amount-negative">-$873.42</span>
+                            </div>
+                            <div class="budget-row">
+                                <span class="budget-label">Available</span>
+                                <span class="budget-amount amount-positive">$326.58</span>
+                            </div>
+                        </div>
+                        
+                        <div class="tool-use">
+                            <div class="tool-use-header">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+                                </svg>
+                                Using ynab.getUnapprovedTransactions
+                            </div>
+                            Retrieving recent grocery transactions...
+                        </div>
+                        
+                        <p>Your grocery budget is <strong>73% spent</strong> for July. You have <strong>$326.58</strong> remaining, which should cover about 10 days at your current spending rate.</p>
+                        
+                        <p>Recent grocery transactions:</p>
+                        <div class="code-block">
+                            <pre>Kroger          -$127.83   Jul 20
+Whole Foods     -$89.42    Jul 18  
+Costco          -$243.17   Jul 15
+Target          -$67.89    Jul 12
+Trader Joe's    -$54.33    Jul 10</pre>
+                        </div>
+                        
+                        <p>The Costco trip on July 15 was your largest grocery expense this month. You're tracking slightly under budget - at this pace, you'll finish the month about $50 under your $1,200 target.</p>
+                    </div>
+                </div>
+                
+                <div class="message">
+                    <div class="avatar user-avatar">CA</div>
+                    <div class="message-content">
+                        <p>Move $100 from dining out to groceries please</p>
+                    </div>
+                </div>
+                
+                <div class="message">
+                    <div class="avatar assistant-avatar">💰</div>
+                    <div class="message-content">
+                        <div class="typing-indicator">
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="input-container">
+            <div class="input-wrapper">
+                <textarea class="input-field" placeholder="Message Budget Assistant..." rows="1"></textarea>
+                <button class="send-button active">
+                    <svg class="send-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
