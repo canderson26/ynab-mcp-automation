@@ -5,7 +5,10 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "build": "vite build",
+    "preview": "vite preview",
+    "dev:vite": "vite"
   },
   "dependencies": {
     "dotenv": "^17.2.0",
@@ -13,7 +16,11 @@
     "ws": "^8.14.2"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1"
+    "@vitejs/plugin-legacy": "^7.1.0",
+    "autoprefixer": "^10.4.21",
+    "nodemon": "^3.0.1",
+    "postcss": "^8.5.6",
+    "vite": "^7.0.5"
   },
   "keywords": [
     "budget",

@@ -1424,8 +1424,13 @@
         
         function connectWebSocket() {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${protocol}//${window.location.host}`;
+            // In development, connect to the backend server on port 3000
+            const isDev = window.location.port === '3001';
+            const wsUrl = isDev 
+                ? `${protocol}//localhost:3000`
+                : `${protocol}//${window.location.host}`;
             
+            console.log('Connecting to WebSocket:', wsUrl);
             ws = new WebSocket(wsUrl);
             
             ws.onopen = function() {
@@ -1437,9 +1442,10 @@
             ws.onmessage = function(event) {
                 try {
                     const message = JSON.parse(event.data);
+                    console.log('📨 Received WebSocket message:', message);
                     handleServerMessage(message);
                 } catch (error) {
-                    console.error('Error parsing message:', error);
+                    console.error('Error parsing message:', error, 'Raw data:', event.data);
                 }
             };
             
@@ -1458,8 +1464,10 @@
         }
         
         function handleServerMessage(message) {
+            console.log('🔄 Handling server message type:', message.type);
             switch (message.type) {
                 case 'claude_response':
+                    console.log('🤖 Adding Claude response:', message.data?.substring(0, 100) + '...');
                     addClaudeResponse(message.data);
                     break;
                     

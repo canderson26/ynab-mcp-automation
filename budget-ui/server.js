@@ -142,13 +142,14 @@ class ClaudeCodeManager {
         this.process = null;
         this.isReady = false;
         this.messageQueue = [];
+        this.conversationHistory = [];
     }
 
     start() {
         console.log('🚀 Claude Code initialized');
         
         // Test Claude Code is available
-        const testProcess = spawn('claude', ['--print'], {
+        const testProcess = spawn('claude', ['--print', '--dangerously-skip-permissions'], {
             cwd: CLAUDE_WORKSPACE,
             stdio: ['pipe', 'pipe', 'pipe'],
             env: { ...process.env }
@@ -177,8 +178,31 @@ class ClaudeCodeManager {
     sendMessage(message, retryCount = 0) {
         console.log('Sending to Claude Code:', message.substring(0, 100) + '...');
         
+        // Add to conversation history
+        this.conversationHistory.push({
+            role: 'user',
+            content: message,
+            timestamp: new Date().toISOString()
+        });
+        
+        // Build conversation context - include recent history
+        let conversationContext = '';
+        if (this.conversationHistory.length > 1) {
+            // Include last 10 exchanges to maintain context while avoiding token limits
+            const recentHistory = this.conversationHistory.slice(-20);
+            conversationContext = recentHistory.map(entry => {
+                if (entry.role === 'user') {
+                    return `Human: ${entry.content}`;
+                } else {
+                    return `Assistant: ${entry.content}`;
+                }
+            }).join('\n\n') + '\n\n';
+        }
+        
+        const messageWithContext = conversationContext + `Human: ${message}`;
+        
         // Use spawn with stdin approach - more reliable than exec
-        const claudeProcess = spawn('claude', ['--print'], {
+        const claudeProcess = spawn('claude', ['--print', '--dangerously-skip-permissions'], {
             cwd: CLAUDE_WORKSPACE,
             stdio: ['pipe', 'pipe', 'pipe'],
             env: {
@@ -229,9 +253,12 @@ class ClaudeCodeManager {
             console.log(`Claude Code response received (${response.length} chars)`);
             
             // Check if we got "Execution error" or other failure indicators
-            const isExecutionError = response.trim() === 'Execution error' || 
-                                   response.trim().length < 50 || 
-                                   (code !== 0 && response.trim().length < 100);
+            const responseText = response.trim();
+            const isExecutionError = responseText === 'Execution error' || 
+                                   responseText === '' ||
+                                   (responseText.length < 20 && !responseText.includes(' ')) ||
+                                   (responseText.startsWith('{') && responseText.length < 50) ||
+                                   (code !== 0 && responseText.length < 30);
             
             if (isExecutionError && retryCount < 2) {
                 logError(ErrorTypes.PROCESS_ERROR, 'Execution error detected, retrying', { 
@@ -239,6 +266,8 @@ class ClaudeCodeManager {
                     responseLength: response.length,
                     exitCode: code
                 });
+                // Remove the failed attempt from history before retrying
+                this.conversationHistory.pop();
                 setTimeout(() => {
                     this.sendMessage(message, retryCount + 1);
                 }, 1000); // Wait 1 second before retry
@@ -264,7 +293,9 @@ class ClaudeCodeManager {
             console.log('First 200 chars of response:', response.substring(0, 200));
             
             // If still getting execution error after retries, send structured error
-            if (response.trim() === 'Execution error' || (response.trim().length < 50 && retryCount >= 2)) {
+            if (responseText === 'Execution error' || (isExecutionError && retryCount >= 2)) {
+                // Remove failed attempt from history
+                this.conversationHistory.pop();
                 wss.clients.forEach(client => {
                     if (client.readyState === WebSocket.OPEN) {
                         client.send(JSON.stringify(formatErrorForClient(ErrorTypes.PROCESS_ERROR, {
@@ -276,12 +307,24 @@ class ClaudeCodeManager {
                 return;
             }
             
+            // Add successful response to conversation history
+            this.conversationHistory.push({
+                role: 'assistant',
+                content: responseText,
+                timestamp: new Date().toISOString()
+            });
+            
+            // Keep conversation history manageable (last 50 exchanges)
+            if (this.conversationHistory.length > 50) {
+                this.conversationHistory = this.conversationHistory.slice(-50);
+            }
+            
             // Broadcast to all connected clients
             wss.clients.forEach(client => {
                 if (client.readyState === WebSocket.OPEN) {
                     client.send(JSON.stringify({
                         type: 'claude_response',
-                        data: response.trim()
+                        data: responseText
                     }));
                 }
             });
@@ -301,11 +344,16 @@ class ClaudeCodeManager {
             
             // Retry on process errors too
             if (retryCount < 2) {
+                // Remove the failed attempt from history before retrying
+                this.conversationHistory.pop();
                 setTimeout(() => {
                     this.sendMessage(message, retryCount + 1);
                 }, 1000);
                 return;
             }
+            
+            // Remove failed attempt from history
+            this.conversationHistory.pop();
             
             // Send structured error message to client after exhausting retries
             wss.clients.forEach(client => {
@@ -318,9 +366,9 @@ class ClaudeCodeManager {
             });
         });
 
-        // Send the message to Claude
+        // Send the message with context to Claude
         try {
-            claudeProcess.stdin.write(message);
+            claudeProcess.stdin.write(messageWithContext);
             claudeProcess.stdin.end();
         } catch (writeError) {
             logError(ErrorTypes.PROCESS_ERROR, 'Failed to write to Claude process', {
@@ -332,6 +380,9 @@ class ClaudeCodeManager {
                 clearTimeout(processTimeout);
                 processTimeout = null;
             }
+            
+            // Remove failed attempt from history
+            this.conversationHistory.pop();
             
             // Send error to client
             wss.clients.forEach(client => {
@@ -345,9 +396,15 @@ class ClaudeCodeManager {
         }
     }
 
+    clearHistory() {
+        this.conversationHistory = [];
+        console.log('🧹 Conversation history cleared');
+    }
+
     stop() {
         console.log('🛑 Claude Code manager stopped');
         this.isReady = false;
+        this.conversationHistory = [];
     }
 }
 

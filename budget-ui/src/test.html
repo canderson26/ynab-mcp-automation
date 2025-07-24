@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Budget UI Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1e293b;
+            color: #f8fafc;
+            padding: 20px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            background: #334155;
+        }
+    </style>
+</head>
+<body>
+    <h1>Budget UI Debug Test</h1>
+    <div id="status">Loading...</div>
+    
+    <script type="module">
+        console.log('Test page loaded');
+        
+        const statusDiv = document.getElementById('status');
+        
+        try {
+            console.log('Testing module imports...');
+            
+            // Test basic import
+            const { Logger } = await import('./js/utils/logger.js');
+            console.log('Logger imported successfully');
+            statusDiv.innerHTML += '<br>✅ Logger imported';
+            
+            const logger = new Logger('Test');
+            logger.info('Logger working');
+            statusDiv.innerHTML += '<br>✅ Logger instance created';
+            
+            // Test another import
+            const { LoadingManager } = await import('./js/components/LoadingManager.js');
+            console.log('LoadingManager imported successfully');
+            statusDiv.innerHTML += '<br>✅ LoadingManager imported';
+            
+            const loading = new LoadingManager();
+            statusDiv.innerHTML += '<br>✅ LoadingManager instance created';
+            
+            // Test WebSocket import
+            const { WebSocketManager } = await import('./js/services/websocket.js');
+            console.log('WebSocketManager imported successfully');
+            statusDiv.innerHTML += '<br>✅ WebSocketManager imported';
+            
+            statusDiv.innerHTML += '<br><br>🎉 All modules loading correctly!';
+            
+        } catch (error) {
+            console.error('Error during testing:', error);
+            statusDiv.innerHTML += `<br>❌ Error: ${error.message}`;
+        }
+    </script>
+</body>
+</html>
